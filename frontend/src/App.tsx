@@ -12,7 +12,7 @@ export default function App() {
   }, []);
 
   return (
-    <div className="relative h-full w-full overflow-hidden">
+    <div className="relative h-screen w-screen overflow-hidden">
       <MapView />
 
       <header className="pointer-events-none absolute left-4 top-4 z-10 flex items-center gap-3">
