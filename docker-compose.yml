@@ -1,0 +1,22 @@
+services:
+  backend:
+    build: ./backend
+    ports:
+      - "8000:8000"
+    environment:
+      - ENTSOE_API=${ENTSOE_API:-}
+      - DUCKDB_PATH=/data/fluxeu.duckdb
+    volumes:
+      - duckdb-data:/data
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "5173:5173"
+    environment:
+      - BACKEND_URL=http://backend:8000
+    depends_on:
+      - backend
+
+volumes:
+  duckdb-data:

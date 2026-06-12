@@ -1,0 +1,27 @@
+# env / secrets — never commit the ENTSO-E token
+.env
+*.env.local
+
+# python
+__pycache__/
+*.pyc
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+
+# node
+node_modules/
+dist/
+*.local
+*.tsbuildinfo
+
+# data artifacts
+*.duckdb
+*.duckdb.wal
+
+# editor / os
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
