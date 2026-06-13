@@ -24,6 +24,9 @@ from ..models import (
     ConvergencePoint,
     ConvergenceSeries,
     FlowEdge,
+    SankeyLink,
+    SankeyNode,
+    SankeySnapshot,
     SnapshotHistory,
 )
 from .countries import ZONE_TO_CC
@@ -31,6 +34,8 @@ from .interconnectors import load_interconnectors
 
 # Below this spread a border is treated as converged (price coupling held).
 CONVERGED_EUR_MWH = 0.5
+# Ignore commercial flows below this |MW| as noise (matches the map's arc floor).
+MIN_FLOW_MW = 1.0
 
 
 def _border_pairs() -> list[tuple[str, str, str, bool]]:
@@ -140,4 +145,42 @@ def convergence_series(history: SnapshotHistory) -> ConvergenceSeries:
         mean_converged_pct=mean_conv,
         latest_std=points[-1].price_std if points else None,
         points=points,
+    )
+
+
+def sankey_snapshot(
+    data_ts: datetime | None, edges: list[FlowEdge]
+) -> SankeySnapshot:
+    """Bipartite exporter→importer net-flow Sankey from the country edges.
+
+    Each commercial edge becomes one link from the exporter's export-side node
+    to the importer's import-side node, oriented by sign (+ = from→to). Keeping
+    the two sides separate makes the graph acyclic and guarantees, per country,
+    (Σ import links) − (Σ export links) = net position.
+    """
+    links: list[SankeyLink] = []
+    exporters: set[str] = set()
+    importers: set[str] = set()
+    total = 0.0
+    for e in edges:
+        cm = e.commercial_mw
+        if cm is None or abs(cm) < MIN_FLOW_MW:
+            continue
+        exp, imp = (e.from_zone, e.to_zone) if cm > 0 else (e.to_zone, e.from_zone)
+        value = round(abs(cm), 1)
+        links.append(SankeyLink(source=f"x_{exp}", target=f"m_{imp}", value=value))
+        exporters.add(exp)
+        importers.add(imp)
+        total += value
+    nodes = [
+        SankeyNode(id=f"x_{c}", country=c, side="export") for c in sorted(exporters)
+    ] + [
+        SankeyNode(id=f"m_{c}", country=c, side="import") for c in sorted(importers)
+    ]
+    return SankeySnapshot(
+        ts=datetime.now(timezone.utc),
+        data_ts=data_ts,
+        nodes=nodes,
+        links=links,
+        total_mw=round(total, 1),
     )

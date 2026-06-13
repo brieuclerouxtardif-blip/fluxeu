@@ -139,3 +139,28 @@ class ConvergenceSeries(BaseModel):
     mean_converged_pct: float  # window headline
     latest_std: float | None = None  # dispersion at the most recent MTU
     points: list[ConvergencePoint]  # ascending by ts
+
+
+# Net-flow Sankey (PLAN §4.5). Modelled bipartite — each country has an export
+# side node and an import side node — so the graph is acyclic (ECharts needs a
+# DAG; the grid has loop flows) and per-country (in − out) equals net position.
+
+
+class SankeyNode(BaseModel):
+    id: str  # unique node id: "x_FR" (export side) / "m_DE" (import side)
+    country: str  # ISO-2
+    side: Literal["export", "import"]
+
+
+class SankeyLink(BaseModel):
+    source: str  # SankeyNode id (export side)
+    target: str  # SankeyNode id (import side)
+    value: float  # MW — commercial net flow exporter -> importer
+
+
+class SankeySnapshot(BaseModel):
+    ts: datetime  # UTC — compute time
+    data_ts: datetime | None = None  # UTC — market time of the flows
+    nodes: list[SankeyNode]
+    links: list[SankeyLink]
+    total_mw: float  # total cross-border commercial exchange

@@ -125,3 +125,37 @@ def test_convergence_series(monkeypatch):
     assert cs.points[1].price_std > 0
     assert cs.mean_converged_pct == 75.0
     assert cs.latest_std == cs.points[1].price_std
+
+
+def test_sankey_bipartite_and_conservation():
+    # FR->DE->CH->FR is a country-level cycle; the bipartite model stays acyclic.
+    edges = [
+        _edge("FR", "DE", 1000.0),
+        _edge("DE", "CH", 500.0),
+        _edge("CH", "FR", 200.0),
+        _edge("AT", "IT", 0.5),  # below MIN_FLOW_MW -> dropped
+    ]
+    sk = metrics.sankey_snapshot(None, edges)
+
+    # bipartite: every link goes export-side -> import-side
+    assert all(lk.source.startswith("x_") for lk in sk.links)
+    assert all(lk.target.startswith("m_") for lk in sk.links)
+    assert len(sk.links) == 3  # the 0.5 MW edge is dropped as noise
+    assert sk.total_mw == 1700.0
+
+    # conservation: per country, (Σ import links) − (Σ export links) = net from edges
+    imp: dict[str, float] = {}
+    exp: dict[str, float] = {}
+    for lk in sk.links:
+        imp[lk.target[2:]] = imp.get(lk.target[2:], 0.0) + lk.value
+        exp[lk.source[2:]] = exp.get(lk.source[2:], 0.0) + lk.value
+    net_from_edges: dict[str, float] = {}
+    for e in edges:
+        if abs(e.commercial_mw) < metrics.MIN_FLOW_MW:
+            continue
+        net_from_edges[e.to_zone] = net_from_edges.get(e.to_zone, 0.0) + e.commercial_mw
+        net_from_edges[e.from_zone] = net_from_edges.get(e.from_zone, 0.0) - e.commercial_mw
+    for cc in set(imp) | set(exp):
+        assert round(imp.get(cc, 0.0) - exp.get(cc, 0.0), 1) == round(
+            net_from_edges.get(cc, 0.0), 1
+        )

@@ -3,6 +3,7 @@ import type {
   ConvergenceSeries,
   Interconnector,
   LiveSnapshot,
+  SankeySnapshot,
   SnapshotHistory,
   Zone,
   ZonesGeoJSON,
@@ -33,3 +34,4 @@ export const fetchCongestion = () =>
   get<CongestionSnapshot>("/api/metrics/congestion");
 export const fetchConvergence = () =>
   get<ConvergenceSeries>("/api/metrics/convergence");
+export const fetchSankey = () => get<SankeySnapshot>("/api/metrics/sankey");

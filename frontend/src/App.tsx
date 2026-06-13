@@ -3,6 +3,7 @@ import MapView, { type FlowMode } from "./map/MapView";
 import TimeScrubber from "./map/TimeScrubber";
 import PanelDock from "./panels/PanelDock";
 import CongestionPanel from "./panels/CongestionPanel";
+import SankeyPanel from "./panels/SankeyPanel";
 import { priceRampCss } from "./map/priceColor";
 import {
   fetchHealth,
@@ -43,7 +44,7 @@ export default function App() {
   const [scrubIndex, setScrubIndex] = useState<number | null>(null); // null = live
   const [warming, setWarming] = useState(false);
   const [mode, setMode] = useState<FlowMode>("commercial");
-  const [panel, setPanel] = useState<"none" | "congestion">("none");
+  const [panel, setPanel] = useState<"none" | "congestion" | "sankey">("none");
 
   useEffect(() => {
     fetchHealth()
@@ -130,6 +131,17 @@ export default function App() {
       ).length
     : 0;
   const shownTs = displaySnapshot?.data_ts ? new Date(displaySnapshot.data_ts) : null;
+
+  const PANEL_META = {
+    congestion: {
+      title: "Congestion & convergence",
+      subtitle: "spreads de prix · couplage 48 h",
+    },
+    sankey: {
+      title: "Flux nets — Sankey",
+      subtitle: "échanges commerciaux · exporteur → importateur",
+    },
+  } as const;
 
   return (
     <div className="relative h-screen w-screen overflow-hidden">
@@ -230,7 +242,7 @@ export default function App() {
         />
       )}
 
-      {/* panel launcher (right edge) — hidden while a panel is open */}
+      {/* panel launchers (right edge) — hidden while a panel is open */}
       {panel === "none" && (
         <div className="absolute right-0 top-1/2 z-10 flex -translate-y-1/2 flex-col gap-2">
           <button
@@ -240,16 +252,24 @@ export default function App() {
           >
             ⟂ Congestion
           </button>
+          <button
+            onClick={() => setPanel("sankey")}
+            className="rounded-l-lg border border-r-0 border-white/10 bg-surface-1/85 px-3 py-3 font-mono text-xs text-slate-300 backdrop-blur transition-colors hover:text-accent"
+            title="Flux nets (Sankey)"
+          >
+            ⇄ Flux
+          </button>
         </div>
       )}
 
       <PanelDock
-        open={panel === "congestion"}
-        title="Congestion & convergence"
-        subtitle="spreads de prix · couplage 48 h"
+        open={panel !== "none"}
+        title={panel !== "none" ? PANEL_META[panel].title : ""}
+        subtitle={panel !== "none" ? PANEL_META[panel].subtitle : undefined}
         onClose={() => setPanel("none")}
       >
-        <CongestionPanel />
+        {panel === "congestion" && <CongestionPanel />}
+        {panel === "sankey" && <SankeyPanel />}
       </PanelDock>
     </div>
   );

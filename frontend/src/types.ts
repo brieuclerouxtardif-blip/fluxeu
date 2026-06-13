@@ -120,6 +120,28 @@ export interface ConvergenceSeries {
   points: ConvergencePoint[]; // ascending by ts
 }
 
+// Net-flow Sankey (M5) — bipartite: export-side node -> import-side node.
+
+export interface SankeyNode {
+  id: string; // "x_FR" (export) / "m_DE" (import)
+  country: string; // ISO-2
+  side: "export" | "import";
+}
+
+export interface SankeyLink {
+  source: string; // SankeyNode id
+  target: string;
+  value: number; // MW, commercial net
+}
+
+export interface SankeySnapshot {
+  ts: string;
+  data_ts: string | null;
+  nodes: SankeyNode[];
+  links: SankeyLink[];
+  total_mw: number;
+}
+
 export interface ZoneFeatureProps {
   key: string;
   name: string;

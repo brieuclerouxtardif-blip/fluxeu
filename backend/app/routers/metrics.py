@@ -9,9 +9,9 @@ import asyncio
 
 from fastapi import APIRouter, HTTPException
 
-from ..domain.metrics import congestion_snapshot, convergence_series
+from ..domain.metrics import congestion_snapshot, convergence_series, sankey_snapshot
 from ..jobs.scheduler import refresh_snapshot
-from ..models import CongestionSnapshot, ConvergenceSeries
+from ..models import CongestionSnapshot, ConvergenceSeries, SankeySnapshot
 from ..store import cache
 
 router = APIRouter(prefix="/api/metrics", tags=["metrics"])
@@ -42,3 +42,12 @@ async def get_convergence() -> ConvergenceSeries:
     if hist is None:
         raise _warming("convergence")
     return convergence_series(hist)
+
+
+@router.get("/sankey", response_model=SankeySnapshot)
+async def get_sankey() -> SankeySnapshot:
+    """Bipartite net-flow Sankey (who exports to whom) from the live snapshot."""
+    snap = cache.get_snapshot()
+    if snap is None:
+        raise _warming("sankey")
+    return sankey_snapshot(snap.data_ts, snap.edges)
