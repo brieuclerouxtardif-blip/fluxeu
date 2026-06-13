@@ -1,0 +1,683 @@
+{
+ "generated_at": "2026-06-12T22:40:00.997318+00:00",
+ "source": "entsoe-py Area/NEIGHBOURS + electricitymaps-contrib geometries",
+ "zones": [
+  {
+   "code": "10YFR-RTE------C",
+   "key": "FR",
+   "name": "France",
+   "country": "France",
+   "centroid": [
+    2.446,
+    46.616
+   ],
+   "tso": [
+    "RTE"
+   ],
+   "capacity_regime": "FLOW_BASED",
+   "region": "CORE",
+   "has_geometry": true
+  },
+  {
+   "code": "10Y1001A1001A82H",
+   "key": "DE-LU",
+   "name": "Germany-Luxembourg",
+   "country": "Germany+Luxembourg",
+   "centroid": [
+    10.351,
+    51.095
+   ],
+   "tso": [
+    "50Hertz",
+    "Amprion",
+    "TenneT DE",
+    "TransnetBW",
+    "Creos"
+   ],
+   "capacity_regime": "FLOW_BASED",
+   "region": "CORE",
+   "has_geometry": true
+  },
+  {
+   "code": "10YBE----------2",
+   "key": "BE",
+   "name": "Belgium",
+   "country": "Belgium",
+   "centroid": [
+    4.648,
+    50.636
+   ],
+   "tso": [
+    "Elia"
+   ],
+   "capacity_regime": "FLOW_BASED",
+   "region": "CORE",
+   "has_geometry": true
+  },
+  {
+   "code": "10YNL----------L",
+   "key": "NL",
+   "name": "Netherlands",
+   "country": "Netherlands",
+   "centroid": [
+    5.618,
+    52.245
+   ],
+   "tso": [
+    "TenneT NL"
+   ],
+   "capacity_regime": "FLOW_BASED",
+   "region": "CORE",
+   "has_geometry": true
+  },
+  {
+   "code": "10YAT-APG------L",
+   "key": "AT",
+   "name": "Austria",
+   "country": "Austria",
+   "centroid": [
+    14.135,
+    47.584
+   ],
+   "tso": [
+    "APG"
+   ],
+   "capacity_regime": "FLOW_BASED",
+   "region": "CORE",
+   "has_geometry": true
+  },
+  {
+   "code": "10YPL-AREA-----S",
+   "key": "PL",
+   "name": "Poland",
+   "country": "Poland",
+   "centroid": [
+    19.39,
+    52.12
+   ],
+   "tso": [
+    "PSE"
+   ],
+   "capacity_regime": "FLOW_BASED",
+   "region": "CORE",
+   "has_geometry": true
+  },
+  {
+   "code": "10YCZ-CEPS-----N",
+   "key": "CZ",
+   "name": "Czechia",
+   "country": "Czechia",
+   "centroid": [
+    15.31,
+    49.733
+   ],
+   "tso": [
+    "CEPS"
+   ],
+   "capacity_regime": "FLOW_BASED",
+   "region": "CORE",
+   "has_geometry": true
+  },
+  {
+   "code": "10YSK-SEPS-----K",
+   "key": "SK",
+   "name": "Slovakia",
+   "country": "Slovakia",
+   "centroid": [
+    19.481,
+    48.702
+   ],
+   "tso": [
+    "SEPS"
+   ],
+   "capacity_regime": "FLOW_BASED",
+   "region": "CORE",
+   "has_geometry": true
+  },
+  {
+   "code": "10YHU-MAVIR----U",
+   "key": "HU",
+   "name": "Hungary",
+   "country": "Hungary",
+   "centroid": [
+    19.39,
+    47.161
+   ],
+   "tso": [
+    "MAVIR"
+   ],
+   "capacity_regime": "FLOW_BASED",
+   "region": "CORE",
+   "has_geometry": true
+  },
+  {
+   "code": "10YSI-ELES-----O",
+   "key": "SI",
+   "name": "Slovenia",
+   "country": "Slovenia",
+   "centroid": [
+    14.819,
+    46.118
+   ],
+   "tso": [
+    "ELES"
+   ],
+   "capacity_regime": "FLOW_BASED",
+   "region": "CORE",
+   "has_geometry": true
+  },
+  {
+   "code": "10YHR-HEP------M",
+   "key": "HR",
+   "name": "Croatia",
+   "country": "Croatia",
+   "centroid": [
+    16.418,
+    45.099
+   ],
+   "tso": [
+    "HOPS"
+   ],
+   "capacity_regime": "FLOW_BASED",
+   "region": "CORE",
+   "has_geometry": true
+  },
+  {
+   "code": "10YRO-TEL------P",
+   "key": "RO",
+   "name": "Romania",
+   "country": "Romania",
+   "centroid": [
+    24.973,
+    45.855
+   ],
+   "tso": [
+    "Transelectrica"
+   ],
+   "capacity_regime": "FLOW_BASED",
+   "region": "CORE",
+   "has_geometry": true
+  },
+  {
+   "code": "10YCH-SWISSGRIDZ",
+   "key": "CH",
+   "name": "Switzerland",
+   "country": "Switzerland",
+   "centroid": [
+    8.218,
+    46.806
+   ],
+   "tso": [
+    "Swissgrid"
+   ],
+   "capacity_regime": "NTC",
+   "region": "CH",
+   "has_geometry": true
+  },
+  {
+   "code": "10YES-REE------0",
+   "key": "ES",
+   "name": "Spain",
+   "country": "Spain",
+   "centroid": [
+    -3.564,
+    40.389
+   ],
+   "tso": [
+    "REE"
+   ],
+   "capacity_regime": "NTC",
+   "region": "IBERIA",
+   "has_geometry": true
+  },
+  {
+   "code": "10YPT-REN------W",
+   "key": "PT",
+   "name": "Portugal",
+   "country": "Portugal",
+   "centroid": [
+    -7.984,
+    39.688
+   ],
+   "tso": [
+    "REN"
+   ],
+   "capacity_regime": "NTC",
+   "region": "IBERIA",
+   "has_geometry": true
+  },
+  {
+   "code": "10Y1001A1001A73I",
+   "key": "IT-NORD",
+   "name": "Italy North",
+   "country": "Italy",
+   "centroid": [
+    10.196,
+    45.379
+   ],
+   "tso": [
+    "Terna"
+   ],
+   "capacity_regime": "NTC",
+   "region": "ITALY",
+   "has_geometry": true
+  },
+  {
+   "code": "10Y1001A1001A70O",
+   "key": "IT-CNOR",
+   "name": "Italy Centre-North",
+   "country": "Italy",
+   "centroid": [
+    11.87,
+    43.336
+   ],
+   "tso": [
+    "Terna"
+   ],
+   "capacity_regime": "NTC",
+   "region": "ITALY",
+   "has_geometry": true
+  },
+  {
+   "code": "10Y1001A1001A71M",
+   "key": "IT-CSUD",
+   "name": "Italy Centre-South",
+   "country": "Italy",
+   "centroid": [
+    13.7,
+    41.692
+   ],
+   "tso": [
+    "Terna"
+   ],
+   "capacity_regime": "NTC",
+   "region": "ITALY",
+   "has_geometry": true
+  },
+  {
+   "code": "10Y1001A1001A788",
+   "key": "IT-SUD",
+   "name": "Italy South",
+   "country": "Italy",
+   "centroid": [
+    16.238,
+    40.375
+   ],
+   "tso": [
+    "Terna"
+   ],
+   "capacity_regime": "NTC",
+   "region": "ITALY",
+   "has_geometry": true
+  },
+  {
+   "code": "10Y1001C--00096J",
+   "key": "IT-CALA",
+   "name": "Italy Calabria",
+   "country": "Italy",
+   "centroid": [
+    16.4,
+    39.0
+   ],
+   "tso": [
+    "Terna"
+   ],
+   "capacity_regime": "NTC",
+   "region": "ITALY",
+   "has_geometry": false
+  },
+  {
+   "code": "10Y1001A1001A75E",
+   "key": "IT-SICI",
+   "name": "Italy Sicily",
+   "country": "Italy",
+   "centroid": [
+    14.152,
+    37.588
+   ],
+   "tso": [
+    "Terna"
+   ],
+   "capacity_regime": "NTC",
+   "region": "ITALY",
+   "has_geometry": true
+  },
+  {
+   "code": "10Y1001A1001A74G",
+   "key": "IT-SARD",
+   "name": "Italy Sardinia",
+   "country": "Italy",
+   "centroid": [
+    9.029,
+    40.091
+   ],
+   "tso": [
+    "Terna"
+   ],
+   "capacity_regime": "NTC",
+   "region": "ITALY",
+   "has_geometry": true
+  },
+  {
+   "code": "10YGR-HTSO-----Y",
+   "key": "GR",
+   "name": "Greece",
+   "country": "Greece",
+   "centroid": [
+    22.913,
+    39.104
+   ],
+   "tso": [
+    "IPTO"
+   ],
+   "capacity_regime": "NTC",
+   "region": "SEE",
+   "has_geometry": true
+  },
+  {
+   "code": "10YCA-BULGARIA-R",
+   "key": "BG",
+   "name": "Bulgaria",
+   "country": "Bulgaria",
+   "centroid": [
+    25.224,
+    42.772
+   ],
+   "tso": [
+    "ESO"
+   ],
+   "capacity_regime": "NTC",
+   "region": "SEE",
+   "has_geometry": true
+  },
+  {
+   "code": "10YCS-SERBIATSOV",
+   "key": "RS",
+   "name": "Serbia",
+   "country": "Serbia",
+   "centroid": [
+    20.785,
+    44.228
+   ],
+   "tso": [
+    "EMS"
+   ],
+   "capacity_regime": "NTC",
+   "region": "SEE",
+   "has_geometry": true
+  },
+  {
+   "code": "10YGB----------A",
+   "key": "GB",
+   "name": "Great Britain",
+   "country": "Great Britain",
+   "centroid": [
+    -2.635,
+    54.088
+   ],
+   "tso": [
+    "NESO"
+   ],
+   "capacity_regime": "NTC",
+   "region": "GB",
+   "has_geometry": true
+  },
+  {
+   "code": "10Y1001A1001A59C",
+   "key": "IE-SEM",
+   "name": "Ireland SEM",
+   "country": "Ireland (SEM)",
+   "centroid": [
+    -7.882,
+    53.432
+   ],
+   "tso": [
+    "EirGrid",
+    "SONI"
+   ],
+   "capacity_regime": "NTC",
+   "region": "SEM",
+   "has_geometry": true
+  },
+  {
+   "code": "10YDK-1--------W",
+   "key": "DK1",
+   "name": "Denmark West",
+   "country": "Denmark",
+   "centroid": [
+    9.471,
+    56.153
+   ],
+   "tso": [
+    "Energinet"
+   ],
+   "capacity_regime": "FLOW_BASED",
+   "region": "NORDIC",
+   "has_geometry": true
+  },
+  {
+   "code": "10YDK-2--------M",
+   "key": "DK2",
+   "name": "Denmark East",
+   "country": "Denmark",
+   "centroid": [
+    12.016,
+    55.386
+   ],
+   "tso": [
+    "Energinet"
+   ],
+   "capacity_regime": "FLOW_BASED",
+   "region": "NORDIC",
+   "has_geometry": true
+  },
+  {
+   "code": "10YNO-1--------2",
+   "key": "NO1",
+   "name": "Norway Southeast",
+   "country": "Norway",
+   "centroid": [
+    10.706,
+    60.903
+   ],
+   "tso": [
+    "Statnett"
+   ],
+   "capacity_regime": "FLOW_BASED",
+   "region": "NORDIC",
+   "has_geometry": true
+  },
+  {
+   "code": "10YNO-2--------T",
+   "key": "NO2",
+   "name": "Norway Southwest",
+   "country": "Norway",
+   "centroid": [
+    7.652,
+    59.193
+   ],
+   "tso": [
+    "Statnett"
+   ],
+   "capacity_regime": "FLOW_BASED",
+   "region": "NORDIC",
+   "has_geometry": true
+  },
+  {
+   "code": "10YNO-3--------J",
+   "key": "NO3",
+   "name": "Norway Mid",
+   "country": "Norway",
+   "centroid": [
+    9.139,
+    62.776
+   ],
+   "tso": [
+    "Statnett"
+   ],
+   "capacity_regime": "FLOW_BASED",
+   "region": "NORDIC",
+   "has_geometry": true
+  },
+  {
+   "code": "10YNO-4--------9",
+   "key": "NO4",
+   "name": "Norway North",
+   "country": "Norway",
+   "centroid": [
+    20.567,
+    68.569
+   ],
+   "tso": [
+    "Statnett"
+   ],
+   "capacity_regime": "FLOW_BASED",
+   "region": "NORDIC",
+   "has_geometry": true
+  },
+  {
+   "code": "10Y1001A1001A48H",
+   "key": "NO5",
+   "name": "Norway West",
+   "country": "Norway",
+   "centroid": [
+    7.211,
+    60.761
+   ],
+   "tso": [
+    "Statnett"
+   ],
+   "capacity_regime": "FLOW_BASED",
+   "region": "NORDIC",
+   "has_geometry": true
+  },
+  {
+   "code": "10Y1001A1001A44P",
+   "key": "SE1",
+   "name": "Sweden North",
+   "country": "Sweden",
+   "centroid": [
+    20.086,
+    66.749
+   ],
+   "tso": [
+    "Svenska kraftnat"
+   ],
+   "capacity_regime": "FLOW_BASED",
+   "region": "NORDIC",
+   "has_geometry": true
+  },
+  {
+   "code": "10Y1001A1001A45N",
+   "key": "SE2",
+   "name": "Sweden Mid-North",
+   "country": "Sweden",
+   "centroid": [
+    15.998,
+    63.597
+   ],
+   "tso": [
+    "Svenska kraftnat"
+   ],
+   "capacity_regime": "FLOW_BASED",
+   "region": "NORDIC",
+   "has_geometry": true
+  },
+  {
+   "code": "10Y1001A1001A46L",
+   "key": "SE3",
+   "name": "Sweden Mid-South",
+   "country": "Sweden",
+   "centroid": [
+    14.794,
+    59.362
+   ],
+   "tso": [
+    "Svenska kraftnat"
+   ],
+   "capacity_regime": "FLOW_BASED",
+   "region": "NORDIC",
+   "has_geometry": true
+  },
+  {
+   "code": "10Y1001A1001A47J",
+   "key": "SE4",
+   "name": "Sweden South",
+   "country": "Sweden",
+   "centroid": [
+    14.394,
+    56.574
+   ],
+   "tso": [
+    "Svenska kraftnat"
+   ],
+   "capacity_regime": "FLOW_BASED",
+   "region": "NORDIC",
+   "has_geometry": true
+  },
+  {
+   "code": "10YFI-1--------U",
+   "key": "FI",
+   "name": "Finland",
+   "country": "Finland",
+   "centroid": [
+    26.284,
+    64.506
+   ],
+   "tso": [
+    "Fingrid"
+   ],
+   "capacity_regime": "FLOW_BASED",
+   "region": "NORDIC",
+   "has_geometry": true
+  },
+  {
+   "code": "10Y1001A1001A39I",
+   "key": "EE",
+   "name": "Estonia",
+   "country": "Estonia",
+   "centroid": [
+    25.535,
+    58.674
+   ],
+   "tso": [
+    "Elering"
+   ],
+   "capacity_regime": "NTC",
+   "region": "BALTIC",
+   "has_geometry": true
+  },
+  {
+   "code": "10YLV-1001A00074",
+   "key": "LV",
+   "name": "Latvia",
+   "country": "Latvia",
+   "centroid": [
+    24.907,
+    56.854
+   ],
+   "tso": [
+    "AST"
+   ],
+   "capacity_regime": "NTC",
+   "region": "BALTIC",
+   "has_geometry": true
+  },
+  {
+   "code": "10YLT-1001A0008Q",
+   "key": "LT",
+   "name": "Lithuania",
+   "country": "Lithuania",
+   "centroid": [
+    23.893,
+    55.325
+   ],
+   "tso": [
+    "Litgrid"
+   ],
+   "capacity_regime": "NTC",
+   "region": "BALTIC",
+   "has_geometry": true
+  }
+ ]
+}

@@ -1,8 +1,16 @@
+from pathlib import Path
+
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+REPO_ROOT = Path(__file__).resolve().parents[2]
 
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
+
+    # referential files (zones.json, interconnectors.json, zones.geojson);
+    # docker-compose mounts ./data and overrides via DATA_DIR
+    data_dir: Path = REPO_ROOT / "data"
 
     # ENTSO-E Transparency Platform token (optional — Energy-Charts is the no-key default)
     entsoe_api: str | None = None

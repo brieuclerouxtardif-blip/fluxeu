@@ -6,8 +6,10 @@ services:
     environment:
       - ENTSOE_API=${ENTSOE_API:-}
       - DUCKDB_PATH=/data/fluxeu.duckdb
+      - DATA_DIR=/srv/data
     volumes:
       - duckdb-data:/data
+      - ./data:/srv/data:ro
 
   frontend:
     build: ./frontend

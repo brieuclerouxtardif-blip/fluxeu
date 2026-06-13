@@ -1,0 +1,729 @@
+{
+ "generated_at": "2026-06-12T22:40:00.997318+00:00",
+ "source": "entsoe-py NEIGHBOURS + PLAN.md \u00a76 cables",
+ "borders": [
+  {
+   "from_zone": "AT",
+   "to_zone": "CH",
+   "capacity_regime": "NTC",
+   "gb_decoupled": false,
+   "cables": []
+  },
+  {
+   "from_zone": "AT",
+   "to_zone": "CZ",
+   "capacity_regime": "FLOW_BASED",
+   "gb_decoupled": false,
+   "cables": []
+  },
+  {
+   "from_zone": "AT",
+   "to_zone": "DE-LU",
+   "capacity_regime": "FLOW_BASED",
+   "gb_decoupled": false,
+   "cables": []
+  },
+  {
+   "from_zone": "AT",
+   "to_zone": "HU",
+   "capacity_regime": "FLOW_BASED",
+   "gb_decoupled": false,
+   "cables": []
+  },
+  {
+   "from_zone": "AT",
+   "to_zone": "IT-NORD",
+   "capacity_regime": "NTC",
+   "gb_decoupled": false,
+   "cables": []
+  },
+  {
+   "from_zone": "AT",
+   "to_zone": "SI",
+   "capacity_regime": "FLOW_BASED",
+   "gb_decoupled": false,
+   "cables": []
+  },
+  {
+   "from_zone": "BE",
+   "to_zone": "DE-LU",
+   "capacity_regime": "FLOW_BASED",
+   "gb_decoupled": false,
+   "cables": []
+  },
+  {
+   "from_zone": "BE",
+   "to_zone": "FR",
+   "capacity_regime": "FLOW_BASED",
+   "gb_decoupled": false,
+   "cables": []
+  },
+  {
+   "from_zone": "BE",
+   "to_zone": "GB",
+   "capacity_regime": "NTC",
+   "gb_decoupled": true,
+   "cables": [
+    {
+     "name": "Nemo Link",
+     "mw": 1000,
+     "tech": "HVDC",
+     "year": "2019"
+    }
+   ]
+  },
+  {
+   "from_zone": "BE",
+   "to_zone": "NL",
+   "capacity_regime": "FLOW_BASED",
+   "gb_decoupled": false,
+   "cables": []
+  },
+  {
+   "from_zone": "BG",
+   "to_zone": "GR",
+   "capacity_regime": "NTC",
+   "gb_decoupled": false,
+   "cables": []
+  },
+  {
+   "from_zone": "BG",
+   "to_zone": "RO",
+   "capacity_regime": "NTC",
+   "gb_decoupled": false,
+   "cables": []
+  },
+  {
+   "from_zone": "BG",
+   "to_zone": "RS",
+   "capacity_regime": "NTC",
+   "gb_decoupled": false,
+   "cables": []
+  },
+  {
+   "from_zone": "CH",
+   "to_zone": "DE-LU",
+   "capacity_regime": "NTC",
+   "gb_decoupled": false,
+   "cables": []
+  },
+  {
+   "from_zone": "CH",
+   "to_zone": "FR",
+   "capacity_regime": "NTC",
+   "gb_decoupled": false,
+   "cables": []
+  },
+  {
+   "from_zone": "CH",
+   "to_zone": "IT-NORD",
+   "capacity_regime": "NTC",
+   "gb_decoupled": false,
+   "cables": []
+  },
+  {
+   "from_zone": "CZ",
+   "to_zone": "DE-LU",
+   "capacity_regime": "FLOW_BASED",
+   "gb_decoupled": false,
+   "cables": []
+  },
+  {
+   "from_zone": "CZ",
+   "to_zone": "PL",
+   "capacity_regime": "FLOW_BASED",
+   "gb_decoupled": false,
+   "cables": []
+  },
+  {
+   "from_zone": "CZ",
+   "to_zone": "SK",
+   "capacity_regime": "FLOW_BASED",
+   "gb_decoupled": false,
+   "cables": []
+  },
+  {
+   "from_zone": "DE-LU",
+   "to_zone": "DK1",
+   "capacity_regime": "NTC",
+   "gb_decoupled": false,
+   "cables": []
+  },
+  {
+   "from_zone": "DE-LU",
+   "to_zone": "DK2",
+   "capacity_regime": "NTC",
+   "gb_decoupled": false,
+   "cables": [
+    {
+     "name": "Kontek",
+     "mw": 600,
+     "tech": "HVDC",
+     "year": "1996"
+    }
+   ]
+  },
+  {
+   "from_zone": "DE-LU",
+   "to_zone": "FR",
+   "capacity_regime": "FLOW_BASED",
+   "gb_decoupled": false,
+   "cables": []
+  },
+  {
+   "from_zone": "DE-LU",
+   "to_zone": "NL",
+   "capacity_regime": "FLOW_BASED",
+   "gb_decoupled": false,
+   "cables": []
+  },
+  {
+   "from_zone": "DE-LU",
+   "to_zone": "NO2",
+   "capacity_regime": "NTC",
+   "gb_decoupled": false,
+   "cables": [
+    {
+     "name": "NordLink",
+     "mw": 1400,
+     "tech": "HVDC",
+     "year": "2021"
+    }
+   ]
+  },
+  {
+   "from_zone": "DE-LU",
+   "to_zone": "PL",
+   "capacity_regime": "FLOW_BASED",
+   "gb_decoupled": false,
+   "cables": []
+  },
+  {
+   "from_zone": "DE-LU",
+   "to_zone": "SE4",
+   "capacity_regime": "NTC",
+   "gb_decoupled": false,
+   "cables": []
+  },
+  {
+   "from_zone": "DK1",
+   "to_zone": "DK2",
+   "capacity_regime": "FLOW_BASED",
+   "gb_decoupled": false,
+   "cables": []
+  },
+  {
+   "from_zone": "DK1",
+   "to_zone": "GB",
+   "capacity_regime": "NTC",
+   "gb_decoupled": true,
+   "cables": [
+    {
+     "name": "Viking Link",
+     "mw": 1400,
+     "tech": "HVDC",
+     "year": "2023",
+     "note": "ramping up"
+    }
+   ]
+  },
+  {
+   "from_zone": "DK1",
+   "to_zone": "NL",
+   "capacity_regime": "NTC",
+   "gb_decoupled": false,
+   "cables": [
+    {
+     "name": "COBRAcable",
+     "mw": 700,
+     "tech": "HVDC",
+     "year": "2019"
+    }
+   ]
+  },
+  {
+   "from_zone": "DK1",
+   "to_zone": "NO2",
+   "capacity_regime": "FLOW_BASED",
+   "gb_decoupled": false,
+   "cables": [
+    {
+     "name": "Skagerrak 1-4",
+     "mw": 1700,
+     "tech": "HVDC",
+     "year": "1977-2014"
+    }
+   ]
+  },
+  {
+   "from_zone": "DK1",
+   "to_zone": "SE3",
+   "capacity_regime": "FLOW_BASED",
+   "gb_decoupled": false,
+   "cables": []
+  },
+  {
+   "from_zone": "DK2",
+   "to_zone": "SE4",
+   "capacity_regime": "FLOW_BASED",
+   "gb_decoupled": false,
+   "cables": []
+  },
+  {
+   "from_zone": "EE",
+   "to_zone": "FI",
+   "capacity_regime": "NTC",
+   "gb_decoupled": false,
+   "cables": [
+    {
+     "name": "EstLink 1+2",
+     "mw": 1000,
+     "tech": "HVDC",
+     "year": "2007/2014"
+    }
+   ]
+  },
+  {
+   "from_zone": "EE",
+   "to_zone": "LV",
+   "capacity_regime": "NTC",
+   "gb_decoupled": false,
+   "cables": []
+  },
+  {
+   "from_zone": "ES",
+   "to_zone": "FR",
+   "capacity_regime": "NTC",
+   "gb_decoupled": false,
+   "cables": [
+    {
+     "name": "INELFE",
+     "mw": 2000,
+     "tech": "HVDC",
+     "year": "2015",
+     "note": "plus AC lines"
+    }
+   ]
+  },
+  {
+   "from_zone": "ES",
+   "to_zone": "PT",
+   "capacity_regime": "NTC",
+   "gb_decoupled": false,
+   "cables": []
+  },
+  {
+   "from_zone": "FI",
+   "to_zone": "NO4",
+   "capacity_regime": "FLOW_BASED",
+   "gb_decoupled": false,
+   "cables": []
+  },
+  {
+   "from_zone": "FI",
+   "to_zone": "SE1",
+   "capacity_regime": "FLOW_BASED",
+   "gb_decoupled": false,
+   "cables": []
+  },
+  {
+   "from_zone": "FI",
+   "to_zone": "SE3",
+   "capacity_regime": "FLOW_BASED",
+   "gb_decoupled": false,
+   "cables": []
+  },
+  {
+   "from_zone": "FR",
+   "to_zone": "GB",
+   "capacity_regime": "NTC",
+   "gb_decoupled": true,
+   "cables": [
+    {
+     "name": "IFA",
+     "mw": 2000,
+     "tech": "HVDC",
+     "year": "1986"
+    },
+    {
+     "name": "IFA2",
+     "mw": 1000,
+     "tech": "HVDC",
+     "year": "2021"
+    },
+    {
+     "name": "ElecLink",
+     "mw": 1000,
+     "tech": "HVDC",
+     "year": "2022",
+     "note": "Channel Tunnel"
+    }
+   ]
+  },
+  {
+   "from_zone": "FR",
+   "to_zone": "IE-SEM",
+   "capacity_regime": "NTC",
+   "gb_decoupled": false,
+   "cables": [
+    {
+     "name": "Celtic",
+     "mw": 700,
+     "tech": "HVDC",
+     "year": "~2026",
+     "note": "under construction",
+     "commissioned": false
+    }
+   ]
+  },
+  {
+   "from_zone": "FR",
+   "to_zone": "IT-NORD",
+   "capacity_regime": "NTC",
+   "gb_decoupled": false,
+   "cables": []
+  },
+  {
+   "from_zone": "GB",
+   "to_zone": "IE-SEM",
+   "capacity_regime": "NTC",
+   "gb_decoupled": true,
+   "cables": [
+    {
+     "name": "East-West (EWIC)",
+     "mw": 500,
+     "tech": "HVDC",
+     "year": "2012"
+    },
+    {
+     "name": "Greenlink",
+     "mw": 500,
+     "tech": "HVDC",
+     "year": "2024"
+    },
+    {
+     "name": "Moyle",
+     "mw": 500,
+     "tech": "HVDC",
+     "year": "2001",
+     "note": "to Northern Ireland"
+    }
+   ]
+  },
+  {
+   "from_zone": "GB",
+   "to_zone": "NL",
+   "capacity_regime": "NTC",
+   "gb_decoupled": true,
+   "cables": [
+    {
+     "name": "BritNed",
+     "mw": 1000,
+     "tech": "HVDC",
+     "year": "2011"
+    }
+   ]
+  },
+  {
+   "from_zone": "GB",
+   "to_zone": "NO2",
+   "capacity_regime": "NTC",
+   "gb_decoupled": true,
+   "cables": [
+    {
+     "name": "North Sea Link",
+     "mw": 1400,
+     "tech": "HVDC",
+     "year": "2021"
+    }
+   ]
+  },
+  {
+   "from_zone": "GR",
+   "to_zone": "IT-SUD",
+   "capacity_regime": "NTC",
+   "gb_decoupled": false,
+   "cables": [
+    {
+     "name": "GRITA",
+     "mw": 500,
+     "tech": "HVDC",
+     "year": "2002"
+    }
+   ]
+  },
+  {
+   "from_zone": "HR",
+   "to_zone": "HU",
+   "capacity_regime": "FLOW_BASED",
+   "gb_decoupled": false,
+   "cables": []
+  },
+  {
+   "from_zone": "HR",
+   "to_zone": "RS",
+   "capacity_regime": "NTC",
+   "gb_decoupled": false,
+   "cables": []
+  },
+  {
+   "from_zone": "HR",
+   "to_zone": "SI",
+   "capacity_regime": "FLOW_BASED",
+   "gb_decoupled": false,
+   "cables": []
+  },
+  {
+   "from_zone": "HU",
+   "to_zone": "RO",
+   "capacity_regime": "FLOW_BASED",
+   "gb_decoupled": false,
+   "cables": []
+  },
+  {
+   "from_zone": "HU",
+   "to_zone": "RS",
+   "capacity_regime": "NTC",
+   "gb_decoupled": false,
+   "cables": []
+  },
+  {
+   "from_zone": "HU",
+   "to_zone": "SI",
+   "capacity_regime": "FLOW_BASED",
+   "gb_decoupled": false,
+   "cables": []
+  },
+  {
+   "from_zone": "HU",
+   "to_zone": "SK",
+   "capacity_regime": "FLOW_BASED",
+   "gb_decoupled": false,
+   "cables": []
+  },
+  {
+   "from_zone": "IT-CALA",
+   "to_zone": "IT-SICI",
+   "capacity_regime": "NTC",
+   "gb_decoupled": false,
+   "cables": []
+  },
+  {
+   "from_zone": "IT-CALA",
+   "to_zone": "IT-SUD",
+   "capacity_regime": "NTC",
+   "gb_decoupled": false,
+   "cables": []
+  },
+  {
+   "from_zone": "IT-CNOR",
+   "to_zone": "IT-CSUD",
+   "capacity_regime": "NTC",
+   "gb_decoupled": false,
+   "cables": []
+  },
+  {
+   "from_zone": "IT-CNOR",
+   "to_zone": "IT-NORD",
+   "capacity_regime": "NTC",
+   "gb_decoupled": false,
+   "cables": []
+  },
+  {
+   "from_zone": "IT-CNOR",
+   "to_zone": "IT-SARD",
+   "capacity_regime": "NTC",
+   "gb_decoupled": false,
+   "cables": []
+  },
+  {
+   "from_zone": "IT-CSUD",
+   "to_zone": "IT-SARD",
+   "capacity_regime": "NTC",
+   "gb_decoupled": false,
+   "cables": []
+  },
+  {
+   "from_zone": "IT-CSUD",
+   "to_zone": "IT-SUD",
+   "capacity_regime": "NTC",
+   "gb_decoupled": false,
+   "cables": []
+  },
+  {
+   "from_zone": "IT-NORD",
+   "to_zone": "SI",
+   "capacity_regime": "NTC",
+   "gb_decoupled": false,
+   "cables": []
+  },
+  {
+   "from_zone": "LT",
+   "to_zone": "LV",
+   "capacity_regime": "NTC",
+   "gb_decoupled": false,
+   "cables": []
+  },
+  {
+   "from_zone": "LT",
+   "to_zone": "PL",
+   "capacity_regime": "NTC",
+   "gb_decoupled": false,
+   "cables": [
+    {
+     "name": "LitPol",
+     "mw": 500,
+     "tech": "HVAC/HVDC",
+     "year": "2015"
+    }
+   ]
+  },
+  {
+   "from_zone": "LT",
+   "to_zone": "SE4",
+   "capacity_regime": "NTC",
+   "gb_decoupled": false,
+   "cables": [
+    {
+     "name": "NordBalt",
+     "mw": 700,
+     "tech": "HVDC",
+     "year": "2016"
+    }
+   ]
+  },
+  {
+   "from_zone": "NL",
+   "to_zone": "NO2",
+   "capacity_regime": "NTC",
+   "gb_decoupled": false,
+   "cables": [
+    {
+     "name": "NorNed",
+     "mw": 700,
+     "tech": "HVDC",
+     "year": "2008"
+    }
+   ]
+  },
+  {
+   "from_zone": "NO1",
+   "to_zone": "NO2",
+   "capacity_regime": "FLOW_BASED",
+   "gb_decoupled": false,
+   "cables": []
+  },
+  {
+   "from_zone": "NO1",
+   "to_zone": "NO3",
+   "capacity_regime": "FLOW_BASED",
+   "gb_decoupled": false,
+   "cables": []
+  },
+  {
+   "from_zone": "NO1",
+   "to_zone": "NO5",
+   "capacity_regime": "FLOW_BASED",
+   "gb_decoupled": false,
+   "cables": []
+  },
+  {
+   "from_zone": "NO1",
+   "to_zone": "SE3",
+   "capacity_regime": "FLOW_BASED",
+   "gb_decoupled": false,
+   "cables": []
+  },
+  {
+   "from_zone": "NO2",
+   "to_zone": "NO5",
+   "capacity_regime": "FLOW_BASED",
+   "gb_decoupled": false,
+   "cables": []
+  },
+  {
+   "from_zone": "NO3",
+   "to_zone": "NO4",
+   "capacity_regime": "FLOW_BASED",
+   "gb_decoupled": false,
+   "cables": []
+  },
+  {
+   "from_zone": "NO3",
+   "to_zone": "NO5",
+   "capacity_regime": "FLOW_BASED",
+   "gb_decoupled": false,
+   "cables": []
+  },
+  {
+   "from_zone": "NO3",
+   "to_zone": "SE2",
+   "capacity_regime": "FLOW_BASED",
+   "gb_decoupled": false,
+   "cables": []
+  },
+  {
+   "from_zone": "NO4",
+   "to_zone": "SE1",
+   "capacity_regime": "FLOW_BASED",
+   "gb_decoupled": false,
+   "cables": []
+  },
+  {
+   "from_zone": "NO4",
+   "to_zone": "SE2",
+   "capacity_regime": "FLOW_BASED",
+   "gb_decoupled": false,
+   "cables": []
+  },
+  {
+   "from_zone": "PL",
+   "to_zone": "SE4",
+   "capacity_regime": "NTC",
+   "gb_decoupled": false,
+   "cables": [
+    {
+     "name": "SwePol",
+     "mw": 600,
+     "tech": "HVDC",
+     "year": "2000"
+    }
+   ]
+  },
+  {
+   "from_zone": "PL",
+   "to_zone": "SK",
+   "capacity_regime": "FLOW_BASED",
+   "gb_decoupled": false,
+   "cables": []
+  },
+  {
+   "from_zone": "RO",
+   "to_zone": "RS",
+   "capacity_regime": "NTC",
+   "gb_decoupled": false,
+   "cables": []
+  },
+  {
+   "from_zone": "SE1",
+   "to_zone": "SE2",
+   "capacity_regime": "FLOW_BASED",
+   "gb_decoupled": false,
+   "cables": []
+  },
+  {
+   "from_zone": "SE2",
+   "to_zone": "SE3",
+   "capacity_regime": "FLOW_BASED",
+   "gb_decoupled": false,
+   "cables": []
+  },
+  {
+   "from_zone": "SE3",
+   "to_zone": "SE4",
+   "capacity_regime": "FLOW_BASED",
+   "gb_decoupled": false,
+   "cables": []
+  }
+ ]
+}
