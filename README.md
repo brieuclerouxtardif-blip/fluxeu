@@ -6,9 +6,14 @@
 
 ## Status
 
-🕛 **M4 — 48 h time scrubber** (current): on top of the live map hero, a bottom **time scrubber** replays the last 48 h of prices and flows. The whole window comes from a single `GET /api/history` (same Energy-Charts sweep as the live snapshot — **zero extra API calls**) and is replayed client-side: the playhead runs on a `requestAnimationFrame` loop with play/pause + speed, **prices step per market interval** (never interpolated), and "return to live" snaps back to the latest frame.
+📊 **M5 — Analytics panels** (current): four dockable panels beside the live map, all derived **in-memory** from the cached snapshot + 48 h history (no extra API calls, no database):
 
-The hero map itself (M3): a dark Europe map with bidding zones **colored by current day-ahead price** (negative prices rendered distinctly, never clipped) and **animated cross-border flow arcs** — arc width ∝ |MW|, the travelling comet shows flow direction — with a **commercial ⇄ physical** toggle, a price legend, and hover tooltips. Built on the M2 Energy-Charts snapshot at `/api/snapshot/live`.
+- **Congestion** — zone-level price-spread leaderboard (incl. intra-country splits) + a 48 h market-convergence curve; congestion rent shown only where it is attributable.
+- **Flux** — a **bipartite net-flow Sankey** (who exports to whom); modelled export-side → import-side so it is acyclic and per-country `in − out` equals net position.
+- **Interconnexions** — searchable border explorer; per-border detail with named DC cables and a 48 h **commercial-vs-physical** flow chart + price-spread overlay.
+- **Zone** — per-zone 48 h price curve (stepped), country net position, neighbour exchanges.
+
+Earlier milestones, still live: a **48 h time scrubber** (M4 — one `GET /api/history`, replayed client-side on a `requestAnimationFrame` playhead, prices stepped) over the **hero map** (M3 — bidding zones colored by day-ahead price, animated cross-border flow arcs, commercial ⇄ physical toggle), on the M2 Energy-Charts snapshot. DuckDB and NTC/zone-level flows arrive at M6 with ENTSO-E.
 
 Build roadmap (see [PLAN.md](PLAN.md) §7):
 
@@ -19,7 +24,7 @@ Build roadmap (see [PLAN.md](PLAN.md) §7):
 | M2 | Energy-Charts source (no key) + live snapshot | ✅ |
 | M3 | Live map hero (price choropleth + animated flow arcs) | ✅ |
 | M4 | 48 h history + time scrubber (no DuckDB) | ✅ |
-| M5 | Metrics & panels (congestion ✅, Sankey ✅, explorer ✅, then zone dashboard) | 🔵 |
+| M5 | Metrics & panels — congestion, Sankey, interconnector explorer, zone dashboard | ✅ |
 | M6 | Analytics + DuckDB + ENTSO-E upgrade (NTC, zone-level flows) | ⬜ |
 
 ## Quick start
@@ -67,6 +72,9 @@ npm run dev
 | `GET /api/interconnectors` | borders + named DC cables |
 | `GET /api/snapshot/live` | `LiveSnapshot` — prices, flow nodes/edges, net positions (UTC) |
 | `GET /api/history` | `SnapshotHistory` — 48 h of frames (prices + edges + net positions) for the scrubber, one GET |
+| `GET /api/metrics/congestion` | zone-level price spreads (leaderboard / heatmap), descending |
+| `GET /api/metrics/convergence` | 48 h price dispersion + share of coupled borders |
+| `GET /api/metrics/sankey` | bipartite net-flow graph (exporter → importer) |
 
 ## Architecture
 
