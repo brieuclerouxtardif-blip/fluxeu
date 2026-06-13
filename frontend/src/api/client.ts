@@ -1,4 +1,6 @@
 import type {
+  CongestionSnapshot,
+  ConvergenceSeries,
   Interconnector,
   LiveSnapshot,
   SnapshotHistory,
@@ -27,3 +29,7 @@ export const fetchZonesGeoJSON = () => get<ZonesGeoJSON>("/api/zones.geojson");
 export const fetchLiveSnapshot = () =>
   get<LiveSnapshot>("/api/snapshot/live");
 export const fetchHistory = () => get<SnapshotHistory>("/api/history");
+export const fetchCongestion = () =>
+  get<CongestionSnapshot>("/api/metrics/congestion");
+export const fetchConvergence = () =>
+  get<ConvergenceSeries>("/api/metrics/convergence");

@@ -99,9 +99,43 @@ class SnapshotHistory(BaseModel):
     frames: list[HistoryFrame]  # ascending by ts; ~hourly over ~48 h
 
 
+# --- metrics (M5) ----------------------------------------------------------
+# Congestion is read off the live snapshot + 48 h history in memory (no DB):
+# spreads are ZONE-level (richer — captures internal NO/SE/IT splits too),
+# while congestion rent needs a flow, which only exists on the COUNTRY graph,
+# so it is filled only where a zone border is the unique link of its country
+# pair (otherwise None — never split a shared country flow across zone borders).
+
+
 class BorderMetric(BaseModel):
-    from_zone: str
-    to_zone: str
-    spread_eur_mwh: float
-    congestion_income_eur: float | None = None
-    utilisation: float | None = None  # 0..1, NTC only
+    from_zone: str  # zone key
+    to_zone: str  # zone key
+    spread_eur_mwh: float  # |price_from - price_to|
+    price_from: float | None = None
+    price_to: float | None = None
+    internal: bool = False  # both zones in the same country (intra-country congestion)
+    congestion_income_eur_h: float | None = None  # spread × |commercial flow| (€/h); None unless unambiguous
+    capacity_regime: CapacityRegime
+    gb_decoupled: bool = False
+    utilisation: float | None = None  # 0..1, NTC only — gated ENTSO-E (M6)
+
+
+class CongestionSnapshot(BaseModel):
+    ts: datetime  # UTC — when these metrics were computed
+    data_ts: datetime | None = None  # UTC — market time of the underlying prices
+    borders: list[BorderMetric]  # descending by spread
+
+
+class ConvergencePoint(BaseModel):
+    ts: datetime  # UTC — market time of this MTU
+    price_std: float  # dispersion (population std) of zonal prices, €/MWh
+    converged_pct: float  # share of priced borders with spread < threshold, 0..100
+
+
+class ConvergenceSeries(BaseModel):
+    start: datetime  # UTC
+    end: datetime  # UTC
+    threshold_eur_mwh: float  # a border counts as "converged" below this spread
+    mean_converged_pct: float  # window headline
+    latest_std: float | None = None  # dispersion at the most recent MTU
+    points: list[ConvergencePoint]  # ascending by ts

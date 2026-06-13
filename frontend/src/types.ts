@@ -82,6 +82,44 @@ export interface SnapshotHistory {
   frames: HistoryFrame[]; // ascending by ts
 }
 
+// --- metrics (M5) ---
+// Spreads are zone-level (incl. intra-country splits); congestion rent is only
+// filled where a border is the unique link of its country pair (else null).
+
+export interface BorderMetric {
+  from_zone: string; // zone key
+  to_zone: string; // zone key
+  spread_eur_mwh: number;
+  price_from: number | null;
+  price_to: number | null;
+  internal: boolean; // both zones in the same country
+  congestion_income_eur_h: number | null; // €/h, null unless unambiguous
+  capacity_regime: CapacityRegime;
+  gb_decoupled: boolean;
+  utilisation: number | null; // NTC only — gated ENTSO-E (M6)
+}
+
+export interface CongestionSnapshot {
+  ts: string;
+  data_ts: string | null;
+  borders: BorderMetric[]; // descending by spread
+}
+
+export interface ConvergencePoint {
+  ts: string;
+  price_std: number; // dispersion of zonal prices, €/MWh
+  converged_pct: number; // share of priced borders below threshold, 0..100
+}
+
+export interface ConvergenceSeries {
+  start: string;
+  end: string;
+  threshold_eur_mwh: number;
+  mean_converged_pct: number;
+  latest_std: number | null;
+  points: ConvergencePoint[]; // ascending by ts
+}
+
 export interface ZoneFeatureProps {
   key: string;
   name: string;

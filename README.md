@@ -19,8 +19,8 @@ Build roadmap (see [PLAN.md](PLAN.md) §7):
 | M2 | Energy-Charts source (no key) + live snapshot | ✅ |
 | M3 | Live map hero (price choropleth + animated flow arcs) | ✅ |
 | M4 | 48 h history + time scrubber (no DuckDB) | ✅ |
-| M5 | Metrics & panels + DuckDB (congestion, explorer, dashboards, Sankey) | ⬜ |
-| M6 | Analytics + polish + ENTSO-E upgrade (NTC, zone-level flows) | ⬜ |
+| M5 | Metrics & panels (congestion ✅, then Sankey / explorer / zone dashboard) | 🔵 |
+| M6 | Analytics + DuckDB + ENTSO-E upgrade (NTC, zone-level flows) | ⬜ |
 
 ## Quick start
 
@@ -71,8 +71,8 @@ npm run dev
 ## Architecture
 
 ```
-backend/   FastAPI · entsoe-py + httpx · APScheduler · Pydantic v2 · JSON disk cache (DuckDB at M5)
-frontend/  React + TS + Vite · deck.gl over MapLibre GL · Tailwind (Recharts/ECharts added at M5)
+backend/   FastAPI · entsoe-py + httpx · APScheduler · Pydantic v2 · JSON disk cache (DuckDB at M6)
+frontend/  React + TS + Vite · deck.gl over MapLibre GL · ECharts · Tailwind
 data/      zones.json · interconnectors.json · zones.geojson (generated at M1)
            snapshot.cache.json · history.cache.json (persisted at runtime, gitignored)
 ```
