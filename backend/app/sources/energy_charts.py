@@ -9,11 +9,16 @@ https://api.energy-charts.info/ — JSON, free. Verified against the live API:
       France comes back all-negative). Cross-border values are in GW -> x1000 -> MW.
 
 Prices are zone-level; flows are country-level (PLAN §2.1 / §8.5 limitation).
+
+One sweep returns a whole time RANGE per call, so a 48 h history costs the same
+as a single "latest" snapshot — the M4 scrubber reuses this sweep (no separate
+backfill job). The live snapshot is just the latest frame (see base.live_from_history).
 """
 
 from __future__ import annotations
 
 import asyncio
+import bisect
 import random
 from datetime import datetime, timedelta, timezone
 
@@ -25,11 +30,14 @@ from ..domain.countries import (
     flow_query_countries,
     load_flow_nodes,
 )
-from ..models import FlowEdge, LiveSnapshot
+from ..models import FlowEdge, HistoryFrame, LiveSnapshot, SnapshotHistory
+from .base import live_from_history
 
 BASE_URL = "https://api.energy-charts.info"
 GW_TO_MW = 1000.0
-LOOKBACK_HOURS = 6
+LOOKBACK_HOURS = 6   # window for the live snapshot's latest point
+HISTORY_HOURS = 48   # window for the scrubber (same call count, wider range)
+_GRANULARITY = {"prices": "bidding_zone", "flows": "country"}
 # Energy-Charts rate limit, measured live: a small token bucket that refills
 # ~1 token / 7.5 s, and a 429 trips a punitive hold that ESCALATES under
 # sustained load. So we SERIALIZE (concurrency=1), pace at the refill rate, and
@@ -149,52 +157,62 @@ class EnergyChartsSource:
         return None
 
     async def fetch_snapshot(self) -> LiveSnapshot:
+        """Live map snapshot = latest frame of a short-window history."""
+        hist = await self._fetch_history(LOOKBACK_HOURS)
+        live = live_from_history(hist)
+        if live is not None:
+            return live
+        now = datetime.now(timezone.utc)
+        return LiveSnapshot(
+            ts=now, source=self.name, data_ts=None, granularity=_GRANULARITY,
+            prices={}, nodes=list(load_flow_nodes()), edges=[], net_positions={},
+        )
+
+    async def fetch_history(self) -> SnapshotHistory:
+        """48 h of frames for the scrubber — same call count as a live snapshot."""
+        return await self._fetch_history(HISTORY_HOURS)
+
+    async def _fetch_history(self, hours: int) -> SnapshotHistory:
         now = datetime.now(timezone.utc)
         now_ts = now.timestamp()
-        start = (now - timedelta(hours=LOOKBACK_HOURS)).strftime("%Y-%m-%dT%H:%MZ")
+        start_dt = now - timedelta(hours=hours)
+        start = start_dt.strftime("%Y-%m-%dT%H:%MZ")
         end = (now + timedelta(hours=1)).strftime("%Y-%m-%dT%H:%MZ")
 
         async with httpx.AsyncClient(base_url=BASE_URL, timeout=30) as client:
             sem = asyncio.Semaphore(MAX_CONCURRENCY)
-            prices, price_ts = await self._fetch_prices(client, sem, start, end, now_ts)
-            comm, comm_ts, net_pos = await self._fetch_flows(client, sem, "/cbet", start, end, now_ts)
-            phys, phys_ts, _ = await self._fetch_flows(client, sem, "/cbpf", start, end, now_ts)
+            price_series = await self._fetch_price_series(client, sem, start, end)
+            comm_series, net_series = await self._fetch_flow_series(client, sem, "/cbet", start, end)
+            phys_series, _ = await self._fetch_flow_series(client, sem, "/cbpf", start, end)
 
-        flow_ts = max((t for t in (comm_ts, phys_ts) if t is not None), default=now)
-        edges = self._build_edges(comm, phys, flow_ts)
-        data_ts = max((t for t in (price_ts, comm_ts, phys_ts) if t is not None), default=now)
-        return LiveSnapshot(
+        frames = _build_frames(price_series, comm_series, phys_series, net_series, start_dt.timestamp(), now_ts)
+        return SnapshotHistory(
             ts=now,
             source=self.name,
-            data_ts=data_ts,
-            granularity={"prices": "bidding_zone", "flows": "country"},
-            prices=prices,
+            granularity=_GRANULARITY,
             nodes=list(load_flow_nodes()),
-            edges=edges,
-            net_positions=net_pos,
+            start=start_dt,
+            end=now,
+            frames=frames,
         )
 
-    async def _fetch_prices(self, client, sem, start, end, now_ts):
+    async def _fetch_price_series(self, client, sem, start, end) -> dict[str, list[tuple[int, float]]]:
         async def one(key: str, bzn: str):
             d = await self._get(client, sem, "/price", {"bzn": bzn, "start": start, "end": end})
             if not d or "price" not in d:
                 return key, None
-            return key, _latest(d.get("unix_seconds", []), d.get("price", []), now_ts)
+            pts = [
+                (int(t), round(float(v), 2))
+                for t, v in zip(d.get("unix_seconds", []), d.get("price", []))
+                if v is not None
+            ]
+            return key, pts
 
         results = await asyncio.gather(*(one(k, b) for k, b in ZONE_BZN.items()))
-        prices: dict[str, float] = {}
-        latest_ts: datetime | None = None
-        for key, got in results:
-            if got is None:
-                continue
-            ts, val = got
-            prices[key] = round(val, 2)
-            if latest_ts is None or ts > latest_ts:
-                latest_ts = ts
-        return prices, latest_ts
+        return {k: pts for k, pts in results if pts}
 
-    async def _fetch_flows(self, client, sem, path, start, end, now_ts):
-        """Return ({(a,b) sorted: signed MW a->b}, latest_ts, net_positions)."""
+    async def _fetch_flow_series(self, client, sem, path, start, end):
+        """Return ({(a,b) sorted: [(ts, signed MW a->b)]}, {country: [(ts, net MW)]})."""
         async def one(cc: str):
             d = await self._get(client, sem, path, {"country": cc.lower(), "start": start, "end": end})
             return cc, d
@@ -202,9 +220,8 @@ class EnergyChartsSource:
         # query a vertex cover of the country graph (each call returns all of a
         # country's borders), not all 28 countries — the rate limit is tight.
         results = await asyncio.gather(*(one(cc) for cc in flow_query_countries()))
-        contributions: dict[tuple[str, str], list[float]] = {}
-        net_pos: dict[str, float] = {}
-        latest_ts: datetime | None = None
+        contributions: dict[tuple[str, str], dict[int, list[float]]] = {}
+        net: dict[str, dict[int, float]] = {}
 
         for cc, d in results:
             if not d:
@@ -212,39 +229,85 @@ class EnergyChartsSource:
             unix = d.get("unix_seconds", [])
             for entry in d.get("countries", []):
                 name = entry.get("name", "")
-                got = _latest(unix, entry.get("data", []), now_ts)
-                if got is None:
-                    continue
-                ts, gw = got
-                if latest_ts is None or ts > latest_ts:
-                    latest_ts = ts
+                data = entry.get("data", [])
                 if name == "sum":
-                    net_pos[cc] = round(gw * GW_TO_MW, 1)  # + = net import
+                    for t, gw in zip(unix, data):
+                        if gw is None:
+                            continue
+                        net.setdefault(cc, {})[int(t)] = round(gw * GW_TO_MW, 1)  # + = net import
                     continue
                 nb = NAME_TO_CC.get(name)
                 if nb is None or nb not in _CANON or nb == cc:
                     continue
-                # gw = net import into cc from nb -> flow cc->nb = -gw
-                flow_cc_to_nb = -gw * GW_TO_MW
                 a, b = sorted((cc, nb))
-                signed = flow_cc_to_nb if a == cc else -flow_cc_to_nb
-                contributions.setdefault((a, b), []).append(signed)
+                for t, gw in zip(unix, data):
+                    if gw is None:
+                        continue
+                    # gw = net import into cc from nb -> flow cc->nb = -gw
+                    flow_cc_to_nb = -gw * GW_TO_MW
+                    signed = flow_cc_to_nb if a == cc else -flow_cc_to_nb
+                    contributions.setdefault((a, b), {}).setdefault(int(t), []).append(signed)
 
-        merged = {pair: round(sum(v) / len(v), 1) for pair, v in contributions.items()}
-        return merged, latest_ts, net_pos
+        merged = {
+            pair: sorted((t, round(sum(v) / len(v), 1)) for t, v in tsmap.items())
+            for pair, tsmap in contributions.items()
+        }
+        net_out = {cc: sorted(d.items()) for cc, d in net.items()}
+        return merged, net_out
 
-    def _build_edges(self, comm: dict, phys: dict, ts: datetime) -> list[FlowEdge]:
-        edges = []
-        for (a, b) in sorted(set(comm) | set(phys)):
+
+# --- frame building (step semantics) --------------------------------------
+# Day-ahead prices are piecewise-constant per MTU, so frames STEP (floor lookup),
+# never interpolate — interpolating would invent prices that never cleared.
+
+
+def _as_step(series: dict) -> dict:
+    """{key: [(ts, val)]} -> {key: (ts_list, val_list)} sorted ascending, for bisect."""
+    out = {}
+    for k, pts in series.items():
+        s = sorted(pts)
+        out[k] = ([p[0] for p in s], [p[1] for p in s])
+    return out
+
+
+def _floor(arr: tuple[list[int], list[float]], t: int) -> float | None:
+    """Value at the most recent ts <= t (None if t precedes the series)."""
+    ts_list, val_list = arr
+    i = bisect.bisect_right(ts_list, t) - 1
+    return val_list[i] if i >= 0 else None
+
+
+def _build_frames(price_series, comm_series, phys_series, net_series, start_ts, now_ts) -> list[HistoryFrame]:
+    price_step = _as_step(price_series)
+    comm_step = _as_step(comm_series)
+    phys_step = _as_step(phys_series)
+    net_step = _as_step(net_series)
+
+    grid: set[int] = set()
+    for step in (price_step, comm_step, phys_step, net_step):
+        for ts_list, _ in step.values():
+            grid.update(ts_list)
+    timeline = sorted(t for t in grid if start_ts <= t <= now_ts)
+
+    pairs = sorted(set(comm_step) | set(phys_step))
+    frames: list[HistoryFrame] = []
+    for t in timeline:
+        prices = {z: v for z, arr in price_step.items() if (v := _floor(arr, t)) is not None}
+        net = {cc: v for cc, arr in net_step.items() if (v := _floor(arr, t)) is not None}
+        dt = datetime.fromtimestamp(t, tz=timezone.utc)
+        edges: list[FlowEdge] = []
+        for (a, b) in pairs:
+            cm = _floor(comm_step[(a, b)], t) if (a, b) in comm_step else None
+            pm = _floor(phys_step[(a, b)], t) if (a, b) in phys_step else None
+            if cm is None and pm is None:
+                continue
             edges.append(
                 FlowEdge(
-                    from_zone=a,
-                    to_zone=b,
-                    ts=ts,
-                    commercial_mw=comm.get((a, b)),
-                    physical_mw=phys.get((a, b)),
+                    from_zone=a, to_zone=b, ts=dt,
+                    commercial_mw=cm, physical_mw=pm,
                     ntc_mw=None,  # Energy-Charts exposes no NTC — never fake one
                     capacity_regime=country_pair_regime(a, b),
                 )
             )
-        return edges
+        frames.append(HistoryFrame(ts=dt, prices=prices, net_positions=net, edges=edges))
+    return frames

@@ -6,7 +6,9 @@
 
 ## Status
 
-🌍 **M3 — Live map hero** (current): a dark Europe map with bidding zones **colored by current day-ahead price** (negative prices rendered distinctly, never clipped) and **animated cross-border flow arcs** — arc width ∝ |MW|, the travelling comet shows flow direction — with a **commercial ⇄ physical** toggle, a price legend, and hover tooltips (zone price + country net position, border flow). Built on the M2 Energy-Charts snapshot at `/api/snapshot/live`.
+🕛 **M4 — 48 h time scrubber** (current): on top of the live map hero, a bottom **time scrubber** replays the last 48 h of prices and flows. The whole window comes from a single `GET /api/history` (same Energy-Charts sweep as the live snapshot — **zero extra API calls**) and is replayed client-side: the playhead runs on a `requestAnimationFrame` loop with play/pause + speed, **prices step per market interval** (never interpolated), and "return to live" snaps back to the latest frame.
+
+The hero map itself (M3): a dark Europe map with bidding zones **colored by current day-ahead price** (negative prices rendered distinctly, never clipped) and **animated cross-border flow arcs** — arc width ∝ |MW|, the travelling comet shows flow direction — with a **commercial ⇄ physical** toggle, a price legend, and hover tooltips. Built on the M2 Energy-Charts snapshot at `/api/snapshot/live`.
 
 Build roadmap (see [PLAN.md](PLAN.md) §7):
 
@@ -16,9 +18,9 @@ Build roadmap (see [PLAN.md](PLAN.md) §7):
 | M1 | Zones/borders referential from `entsoe-py` | ✅ |
 | M2 | Energy-Charts source (no key) + live snapshot | ✅ |
 | M3 | Live map hero (price choropleth + animated flow arcs) | ✅ |
-| M4 | DuckDB history + 48 h time scrubber | ⬜ |
-| M5 | Metrics & panels (congestion, explorer, dashboards, Sankey) | ⬜ |
-| M6 | Analytics + polish + ENTSO-E upgrade | ⬜ |
+| M4 | 48 h history + time scrubber (no DuckDB) | ✅ |
+| M5 | Metrics & panels + DuckDB (congestion, explorer, dashboards, Sankey) | ⬜ |
+| M6 | Analytics + polish + ENTSO-E upgrade (NTC, zone-level flows) | ⬜ |
 
 ## Quick start
 
@@ -54,7 +56,7 @@ npm run dev
 
 > **Granularity note (Energy-Charts demo mode):** prices are per **bidding zone** (`/price`), but cross-border flows are only available per **country** (`/cbet`, `/cbpf`). So the live snapshot colors zones by price yet draws flow arcs on a country-level graph. ENTSO-E (M6) provides zone-level flows. Energy-Charts returns cross-border values in **GW** (converted to MW) and prices in EUR/MWh; flows are signed `+` = into the queried country and re-expressed as `+` = `from_zone → to_zone`.
 
-> **Cold start:** Energy-Charts rate-limits the free tier hard (≈1 request / 7.5 s), so a full snapshot build takes ~9 min. The build is paced to stay under that limit (no 429 storms), runs on a background scheduler (every 30 min), and each result is **persisted to disk** (`data/snapshot.cache.json`, gitignored) — so after the first build, a restart serves real (slightly stale) data instantly while it refreshes. Until the very first build lands, `/api/snapshot/live` returns `503` with `Retry-After`, and the map shows a “warming up” badge.
+> **Cold start:** Energy-Charts rate-limits the free tier hard (≈1 request / 7.5 s, with a punitive escalating hold on `429`), so a full snapshot build takes **~15–25 min** — a source limit, not a tuning bug. The build is serialized and paced to stay under that limit (no 429 storms), runs on a background scheduler (**every 60 min**), and each result is **persisted to disk** (`data/snapshot.cache.json` + `data/history.cache.json`, gitignored) — so after the first build, a restart serves real (slightly stale) data instantly while it refreshes. The **48 h history comes from the same sweep** (one call per series returns the whole window), so the scrubber costs **no extra API calls**. Until the very first build lands, `/api/snapshot/live` and `/api/history` return `503` with `Retry-After`, and the map shows a “warming up” badge.
 
 ### Key endpoints
 
@@ -64,13 +66,15 @@ npm run dev
 | `GET /api/zones` · `/api/zones.geojson` | bidding-zone metadata + geometries |
 | `GET /api/interconnectors` | borders + named DC cables |
 | `GET /api/snapshot/live` | `LiveSnapshot` — prices, flow nodes/edges, net positions (UTC) |
+| `GET /api/history` | `SnapshotHistory` — 48 h of frames (prices + edges + net positions) for the scrubber, one GET |
 
 ## Architecture
 
 ```
-backend/   FastAPI · entsoe-py + httpx · DuckDB · APScheduler · Pydantic v2
-frontend/  React + TS + Vite · deck.gl over MapLibre GL · TanStack Query · Recharts/ECharts · Tailwind
+backend/   FastAPI · entsoe-py + httpx · APScheduler · Pydantic v2 · JSON disk cache (DuckDB at M5)
+frontend/  React + TS + Vite · deck.gl over MapLibre GL · Tailwind (Recharts/ECharts added at M5)
 data/      zones.json · interconnectors.json · zones.geojson (generated at M1)
+           snapshot.cache.json · history.cache.json (persisted at runtime, gitignored)
 ```
 
 Full spec, domain model, API contract, acceptance criteria and pitfalls: **[PLAN.md](PLAN.md)**. Working agreement for Claude Code: **[CLAUDE.md](CLAUDE.md)**.

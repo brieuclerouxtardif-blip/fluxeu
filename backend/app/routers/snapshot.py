@@ -3,7 +3,7 @@ import asyncio
 from fastapi import APIRouter, HTTPException
 
 from ..jobs.scheduler import refresh_snapshot
-from ..models import LiveSnapshot
+from ..models import LiveSnapshot, SnapshotHistory
 from ..store import cache
 
 router = APIRouter(prefix="/api", tags=["snapshot"])
@@ -23,3 +23,18 @@ async def get_live_snapshot() -> LiveSnapshot:
             headers={"Retry-After": "15"},
         )
     return snap
+
+
+@router.get("/history", response_model=SnapshotHistory)
+async def get_history() -> SnapshotHistory:
+    """~48 h of frames (prices + flows) for the time scrubber — one GET; the
+    front holds the window and replays it client-side (no per-instant fetch)."""
+    hist = cache.get_history()
+    if hist is None:
+        asyncio.create_task(refresh_snapshot())
+        raise HTTPException(
+            status_code=503,
+            detail="history warming up, retry shortly",
+            headers={"Retry-After": "15"},
+        )
+    return hist

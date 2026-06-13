@@ -7,8 +7,8 @@ interconnector capacity vs utilisation, congestion (price spreads), generation m
 and historical analytics. See PLAN.md for the full spec — it is the source of truth.
 
 ## Stack (do not deviate without asking)
-Backend: FastAPI (py3.11+), entsoe-py + httpx, DuckDB, APScheduler, Pydantic v2.
-Frontend: React + TS + Vite, deck.gl over MapLibre GL, TanStack Query, Recharts + ECharts, Tailwind.
+Backend: FastAPI (py3.11+), entsoe-py + httpx, APScheduler, Pydantic v2. JSON disk cache for live + 48 h history; **DuckDB introduced at M5** (historical analytics), not before — it is overkill for ~48 hourly frames.
+Frontend: React + TS + Vite, deck.gl over MapLibre GL, Tailwind. Polling + price color ramp are hand-rolled. Chart/analytics libs (Recharts/ECharts) **added on demand at M5**; TanStack Query only if hand-rolled polling stops being enough.
 Run: docker-compose.
 
 ## Data sources
@@ -30,7 +30,7 @@ Run: docker-compose.
 
 ## Build order (verify each milestone before moving on — see PLAN.md §7)
 M0 scaffold -> M1 zones/borders ref -> M2 Energy-Charts snapshot -> M3 live map (hero)
--> M4 DuckDB history + time scrubber -> M5 metrics & panels -> M6 analytics + polish + ENTSO-E.
+-> M4 48 h history + time scrubber (no DuckDB) -> M5 metrics & panels + DuckDB -> M6 analytics + polish + ENTSO-E (NTC, zone-level flows).
 
 ## Definition of done
 PLAN.md §10. Tests: pytest (transforms, metrics, sign conventions, Sankey reconciliation),

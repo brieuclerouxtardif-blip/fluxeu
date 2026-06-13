@@ -76,6 +76,29 @@ class LiveSnapshot(BaseModel):
     net_positions: dict[str, float]  # FlowNode code -> MW (+ = net import)
 
 
+# --- history / scrubber (M4) ----------------------------------------------
+# A 48 h window of frames, one per market timestamp. Built from the SAME sweep
+# as the live snapshot (Energy-Charts returns a whole range per call), so it
+# costs no extra API calls. Prices step per MTU (never interpolated).
+
+
+class HistoryFrame(BaseModel):
+    ts: datetime  # UTC — market time of this frame
+    prices: dict[str, float]  # zone key -> eur_mwh (stepped)
+    net_positions: dict[str, float]  # FlowNode code -> MW (+ = net import)
+    edges: list[FlowEdge]  # signed cross-border flows at this instant
+
+
+class SnapshotHistory(BaseModel):
+    ts: datetime  # UTC — build time
+    source: str
+    granularity: dict[str, str]
+    nodes: list[FlowNode]  # static across frames — sent once
+    start: datetime  # UTC — window start
+    end: datetime  # UTC — window end (≈ now)
+    frames: list[HistoryFrame]  # ascending by ts; ~hourly over ~48 h
+
+
 class BorderMetric(BaseModel):
     from_zone: str
     to_zone: str

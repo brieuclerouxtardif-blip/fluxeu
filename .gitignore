@@ -20,6 +20,7 @@ dist/
 *.duckdb
 *.duckdb.wal
 snapshot.cache.json
+history.cache.json
 backend/resp.json
 
 # editor / os

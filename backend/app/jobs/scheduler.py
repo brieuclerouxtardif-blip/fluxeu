@@ -1,8 +1,9 @@
-"""Live-snapshot refresh.
+"""Live-snapshot + history refresh.
 
-Builds the snapshot from the active source and stores it in the TTL cache.
-A refresh runs once at startup (so the first request is served from cache) and
-then on an interval via APScheduler. A lock prevents overlapping builds.
+One Energy-Charts sweep builds a ~48 h history; the live snapshot is just its
+latest frame — so the map and the scrubber share a single rate-limited sweep
+(no separate backfill job). Results go to the TTL cache and to disk. A refresh
+runs once at startup and then on an interval; a lock prevents overlapping builds.
 """
 
 from __future__ import annotations
@@ -12,6 +13,7 @@ import logging
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
+from ..sources.base import live_from_history
 from ..sources.registry import get_source
 from ..store import cache
 
@@ -33,15 +35,23 @@ async def refresh_snapshot() -> None:
     async with _lock:
         source = get_source()
         try:
-            snap = await source.fetch_snapshot()
+            hist = await source.fetch_history()
         except Exception:  # noqa: BLE001 — never let a refresh kill the scheduler
             log.exception("snapshot refresh failed")
             return
-        cache.set_snapshot(snap)
-        cache.persist_snapshot(snap)  # survive restarts -> instant cold start
+        cache.set_history(hist)
+        cache.persist_history(hist)
+        live = live_from_history(hist)
+        if live is not None:
+            cache.set_snapshot(live)
+            cache.persist_snapshot(live)
         log.info(
-            "snapshot refreshed: %d prices, %d edges, source=%s data_ts=%s",
-            len(snap.prices), len(snap.edges), snap.source, snap.data_ts,
+            "refreshed: %d frames, %d prices, %d edges, source=%s data_ts=%s",
+            len(hist.frames),
+            len(live.prices) if live else 0,
+            len(live.edges) if live else 0,
+            hist.source,
+            live.data_ts if live else None,
         )
 
 
@@ -49,12 +59,16 @@ def start_scheduler() -> None:
     global _scheduler
     if _scheduler is not None:
         return
-    # serve the last persisted snapshot immediately (real but possibly stale),
-    # then refresh in the background.
+    # serve the last persisted snapshot + history immediately (real but possibly
+    # stale), then refresh in the background.
     persisted = cache.load_persisted()
     if persisted is not None:
         cache.set_snapshot(persisted)
         log.info("loaded persisted snapshot data_ts=%s", persisted.data_ts)
+    hist = cache.load_persisted_history()
+    if hist is not None:
+        cache.set_history(hist)
+        log.info("loaded persisted history: %d frames", len(hist.frames))
     _scheduler = AsyncIOScheduler(timezone="UTC")
     _scheduler.add_job(refresh_snapshot, "interval", minutes=REFRESH_MINUTES, id="refresh")
     _scheduler.start()

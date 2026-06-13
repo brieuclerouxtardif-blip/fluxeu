@@ -1,13 +1,16 @@
-"""Live-snapshot cache (in-memory + disk persistence).
+"""Live-snapshot + short-history cache (in-memory + disk persistence).
 
 The APScheduler refresh job (and a lazy build on first request) writes here;
-the /api/snapshot/live endpoint reads here. TTL guards against serving a
-stale snapshot if the refresh job dies.
+the /api/snapshot/live and /api/history endpoints read here. TTL guards the
+live snapshot against serving stale data if the refresh job dies.
 
-The Energy-Charts rate limit makes a cold build slow (~9 min, see
+The Energy-Charts rate limit makes a cold build slow (~15-25 min, see
 sources/energy_charts.py), so each successful build is also persisted to disk
 and reloaded on startup — cold start then serves real, slightly-stale data
-instantly while a fresh build runs in the background.
+(map + 48 h scrubber) instantly while a fresh build runs in the background.
+
+Long-horizon history / SQL analytics is DuckDB territory, deferred to M5/M6;
+here we keep only the latest 48 h window the scrubber needs.
 """
 
 from __future__ import annotations
@@ -16,18 +19,19 @@ import logging
 from datetime import datetime, timezone
 
 from ..config import settings
-from ..models import LiveSnapshot
+from ..models import LiveSnapshot, SnapshotHistory
 
 log = logging.getLogger("fluxeu.cache")
 
-# refreshed every ~30 min; treat older than 1 h as stale
+# refreshed every ~60 min; treat older than 1 h as stale
 TTL_SECONDS = 3600
 
-# single-file cache of the LATEST snapshot (not history — that's DuckDB, M4)
 _CACHE_FILE = settings.data_dir / "snapshot.cache.json"
+_HISTORY_FILE = settings.data_dir / "history.cache.json"
 
 _snapshot: LiveSnapshot | None = None
 _stored_at: datetime | None = None
+_history: SnapshotHistory | None = None
 
 
 def set_snapshot(snap: LiveSnapshot) -> None:
@@ -67,3 +71,32 @@ def is_fresh() -> bool:
     if _stored_at is None:
         return False
     return (datetime.now(timezone.utc) - _stored_at).total_seconds() < TTL_SECONDS
+
+
+# --- 48 h history (M4 scrubber) -------------------------------------------
+
+
+def set_history(hist: SnapshotHistory) -> None:
+    global _history
+    _history = hist
+
+
+def get_history() -> SnapshotHistory | None:
+    return _history
+
+
+def persist_history(hist: SnapshotHistory) -> None:
+    try:
+        _HISTORY_FILE.write_text(hist.model_dump_json(), encoding="utf-8")
+    except OSError:
+        log.exception("could not persist history to %s", _HISTORY_FILE)
+
+
+def load_persisted_history() -> SnapshotHistory | None:
+    if not _HISTORY_FILE.exists():
+        return None
+    try:
+        return SnapshotHistory.model_validate_json(_HISTORY_FILE.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        log.exception("could not load persisted history from %s", _HISTORY_FILE)
+        return None

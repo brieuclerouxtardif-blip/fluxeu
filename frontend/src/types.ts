@@ -62,6 +62,26 @@ export interface LiveSnapshot {
   net_positions: Record<string, number>; // FlowNode code -> MW (+ = import)
 }
 
+// --- history / scrubber (M4) ---
+// 48 h of frames from the same sweep as the live snapshot. Prices step per MTU.
+
+export interface HistoryFrame {
+  ts: string; // UTC ISO-8601 — market time of this frame
+  prices: Record<string, number>; // zone key -> eur_mwh (stepped)
+  net_positions: Record<string, number>; // FlowNode code -> MW (+ = import)
+  edges: FlowEdge[];
+}
+
+export interface SnapshotHistory {
+  ts: string; // UTC ISO-8601 — build time
+  source: string;
+  granularity: { prices: string; flows: string };
+  nodes: FlowNode[]; // static across frames
+  start: string; // UTC ISO-8601
+  end: string; // UTC ISO-8601
+  frames: HistoryFrame[]; // ascending by ts
+}
+
 export interface ZoneFeatureProps {
   key: string;
   name: string;

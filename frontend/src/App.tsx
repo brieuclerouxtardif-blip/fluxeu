@@ -1,18 +1,27 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import MapView, { type FlowMode } from "./map/MapView";
+import TimeScrubber from "./map/TimeScrubber";
 import { priceRampCss } from "./map/priceColor";
 import {
   fetchHealth,
+  fetchHistory,
   fetchInterconnectors,
   fetchLiveSnapshot,
   fetchZones,
   fetchZonesGeoJSON,
   type Health,
 } from "./api/client";
-import type { Interconnector, LiveSnapshot, Zone, ZonesGeoJSON } from "./types";
+import type {
+  Interconnector,
+  LiveSnapshot,
+  SnapshotHistory,
+  Zone,
+  ZonesGeoJSON,
+} from "./types";
 
-const POLL_OK_MS = 5 * 60 * 1000; // backend refreshes every 10 min
-const POLL_WARMING_MS = 15 * 1000; // snapshot warming up (cold start)
+const POLL_OK_MS = 5 * 60 * 1000; // backend refreshes every ~60 min
+const POLL_WARMING_MS = 15 * 1000; // snapshot/history warming up (cold start)
+const HISTORY_REFRESH_MS = 30 * 60 * 1000;
 
 const brussels = new Intl.DateTimeFormat("fr-BE", {
   timeZone: "Europe/Brussels",
@@ -28,6 +37,8 @@ export default function App() {
   const [borders, setBorders] = useState<Interconnector[]>([]);
   const [geojson, setGeojson] = useState<ZonesGeoJSON | null>(null);
   const [snapshot, setSnapshot] = useState<LiveSnapshot | null>(null);
+  const [history, setHistory] = useState<SnapshotHistory | null>(null);
+  const [scrubIndex, setScrubIndex] = useState<number | null>(null); // null = live
   const [warming, setWarming] = useState(false);
   const [mode, setMode] = useState<FlowMode>("commercial");
 
@@ -65,13 +76,57 @@ export default function App() {
     };
   }, []);
 
-  const priceCount = snapshot ? Object.keys(snapshot.prices).length : 0;
-  const arcCount = snapshot
-    ? snapshot.edges.filter((e) =>
+  // Load the 48 h history window (one GET); retry while warming, then refresh
+  // off the backend cadence. The scrubber replays this window client-side.
+  const histTimer = useRef<number | undefined>(undefined);
+  useEffect(() => {
+    let cancelled = false;
+    const load = async () => {
+      try {
+        const h = await fetchHistory();
+        if (cancelled) return;
+        setHistory(h);
+        histTimer.current = window.setTimeout(load, HISTORY_REFRESH_MS);
+      } catch {
+        if (cancelled) return;
+        histTimer.current = window.setTimeout(load, POLL_WARMING_MS);
+      }
+    };
+    load();
+    return () => {
+      cancelled = true;
+      if (histTimer.current) window.clearTimeout(histTimer.current);
+    };
+  }, []);
+
+  // What the map shows: the live snapshot, or a replayed history frame.
+  // Memoised so the synthesized snapshot keeps a stable identity between
+  // renders (MapView only rebuilds layers when the frame actually changes).
+  const displaySnapshot = useMemo<LiveSnapshot | null>(() => {
+    if (scrubIndex != null && history && history.frames[scrubIndex]) {
+      const f = history.frames[scrubIndex];
+      return {
+        ts: history.ts,
+        source: history.source,
+        data_ts: f.ts,
+        granularity: history.granularity,
+        prices: f.prices,
+        nodes: history.nodes,
+        edges: f.edges,
+        net_positions: f.net_positions,
+      };
+    }
+    return snapshot;
+  }, [snapshot, history, scrubIndex]);
+
+  const scrubbing = scrubIndex != null;
+  const priceCount = displaySnapshot ? Object.keys(displaySnapshot.prices).length : 0;
+  const arcCount = displaySnapshot
+    ? displaySnapshot.edges.filter((e) =>
         mode === "commercial" ? e.commercial_mw != null : e.physical_mw != null,
       ).length
     : 0;
-  const dataTs = snapshot?.data_ts ? new Date(snapshot.data_ts) : null;
+  const shownTs = displaySnapshot?.data_ts ? new Date(displaySnapshot.data_ts) : null;
 
   return (
     <div className="relative h-screen w-screen overflow-hidden">
@@ -79,7 +134,7 @@ export default function App() {
         zones={zones}
         borders={borders}
         geojson={geojson}
-        snapshot={snapshot}
+        snapshot={displaySnapshot}
         mode={mode}
       />
 
@@ -102,9 +157,16 @@ export default function App() {
             <span className="text-amber-400">○ API offline</span>
           )}
         </div>
-        {dataTs && (
-          <div className="rounded-lg border border-white/10 bg-surface-1/80 px-3 py-2 font-mono text-xs text-slate-300 backdrop-blur">
-            data {brussels.format(dataTs)} · {priceCount} prices · {arcCount} flows
+        {shownTs && (
+          <div
+            className={`rounded-lg border px-3 py-2 font-mono text-xs backdrop-blur ${
+              scrubbing
+                ? "border-accent/40 bg-surface-1/80 text-accent"
+                : "border-white/10 bg-surface-1/80 text-slate-300"
+            }`}
+          >
+            {scrubbing ? "rejeu " : "data "}
+            {brussels.format(shownTs)} · {priceCount} prices · {arcCount} flows
           </div>
         )}
         {warming && !snapshot && (
@@ -153,6 +215,17 @@ export default function App() {
           prix négatifs en bleu/indigo · flux niveau pays
         </div>
       </div>
+
+      {/* 48 h time scrubber */}
+      {history && history.frames.length > 0 && (
+        <TimeScrubber
+          frames={history.frames}
+          live={!scrubbing}
+          onScrub={(i) => setScrubIndex(i)}
+          onLive={() => setScrubIndex(null)}
+          format={(d) => brussels.format(d)}
+        />
+      )}
     </div>
   );
 }

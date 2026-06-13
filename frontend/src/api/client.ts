@@ -1,6 +1,7 @@
 import type {
   Interconnector,
   LiveSnapshot,
+  SnapshotHistory,
   Zone,
   ZonesGeoJSON,
 } from "../types";
@@ -25,3 +26,4 @@ export const fetchInterconnectors = () =>
 export const fetchZonesGeoJSON = () => get<ZonesGeoJSON>("/api/zones.geojson");
 export const fetchLiveSnapshot = () =>
   get<LiveSnapshot>("/api/snapshot/live");
+export const fetchHistory = () => get<SnapshotHistory>("/api/history");

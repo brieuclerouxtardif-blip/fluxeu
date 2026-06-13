@@ -17,6 +17,7 @@ from app.domain.countries import (
 )
 from app.domain.zones import load_zones
 from app.models import LiveSnapshot
+from app.sources.base import live_from_history
 from app.sources.energy_charts import ZONE_BZN, EnergyChartsSource, _latest
 
 
@@ -129,6 +130,36 @@ async def test_snapshot_sign_convention_and_scaling(monkeypatch):
 
     # net position: + = net import. France sum = +2 GW -> +2000 MW
     assert snap.net_positions["FR"] == 2000.0
+
+
+@pytest.mark.asyncio
+async def test_history_builds_stepped_frames(monkeypatch):
+    """One sweep -> a frame per timestamp; prices step (not interpolated);
+    the live snapshot is the latest frame."""
+    monkeypatch.setattr(EnergyChartsSource, "_get", _fake_get_factory())
+    hist = await EnergyChartsSource().fetch_history()
+
+    assert hist.source == "energy_charts"
+    assert hist.granularity == {"prices": "bidding_zone", "flows": "country"}
+    assert len(hist.frames) == 2  # two timestamps in the mock
+    assert hist.frames[0].ts < hist.frames[1].ts
+
+    # prices step: each frame keeps its own cleared price, no interpolation
+    assert hist.frames[0].prices["FR"] == 50.0
+    assert hist.frames[1].prices["FR"] == 55.0
+
+    # sign convention preserved per frame (+ = from_zone -> to_zone)
+    e0 = {(e.from_zone, e.to_zone): e for e in hist.frames[0].edges}
+    assert e0[("BE", "FR")].commercial_mw == -2000.0  # FR exports 2 GW -> BE
+    assert e0[("BE", "FR")].physical_mw == -1500.0
+    assert e0[("DE", "FR")].commercial_mw == 1000.0   # FR imports 1 GW from DE
+    assert hist.frames[0].net_positions["FR"] == 2000.0
+
+    # live snapshot derived from the history == its latest frame
+    live = live_from_history(hist)
+    assert live is not None
+    assert live.data_ts == hist.frames[-1].ts
+    assert live.prices["FR"] == 55.0
 
 
 @pytest.mark.skipif(

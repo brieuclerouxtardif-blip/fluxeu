@@ -79,6 +79,12 @@ Base : `https://api.energy-charts.info/` — JSON, gratuit, pas de token. **C'es
 
 > Limite : granularité zone parfois agrégée pays ; capacités NTC non exposées finement. Suffisant pour la carte, les flux, les prix et le mix. Utiliser pour le **mode démo / fallback**.
 
+> **⚠️ Rate limit (mesuré, 2026) — contrainte n°1.** Le tier gratuit applique un *token bucket* qui se recharge **~1 requête / 7.5 s** ; un `429` déclenche un blocage punitif qui **escalade** sous charge soutenue. Un snapshot complet (~74 appels : prix par zone + flux par pays) prend donc **~15–25 min**, indépendamment du *pacing* — c'est une limite de la source, pas un réglage à optimiser. Conséquences architecturales (de premier ordre, pas des détails d'implémentation) :
+> - sweep **sérialisé** (concurrence 1) et **pacé** au rythme de recharge, sans *burst* de tête ;
+> - chaque résultat **persisté sur disque** (`data/snapshot.cache.json`, `data/history.cache.json`, gitignored) ;
+> - **refresh 60 min** (pas 5–15) ; *cold start* = sert le cache persisté **instantanément** puis rafraîchit en tâche de fond ;
+> - **l'historique 48 h est extrait du même sweep** (un appel `/price`/`/cbet`/`/cbpf` renvoie toute la fenêtre temporelle) → **0 appel supplémentaire**, pas de job de backfill séparé.
+
 ### 2.2 ENTSO-E Transparency Platform — **source autoritaire (upgrade)**
 
 - Base REST : `https://web-api.tp.entsoe.eu/api`
@@ -117,16 +123,15 @@ Base : `https://api.energy-charts.info/` — JSON, gratuit, pas de token. **C'es
 
 **Backend** — FastAPI (Python 3.11+)
 - Data : `entsoe-py` + `httpx` (Energy-Charts) ; `pandas` pour transforms.
-- Persistance/analytics : **DuckDB** (embarqué, excellent time-series/agrégats) pour l'historique ; cache live en mémoire à TTL (`cachetools`) ou Redis si tu veux multi-instance.
-- Scheduler : `APScheduler` — job de refresh live (5–15 min) + backfill historique.
+- Persistance : **cache JSON sur disque** (live + fenêtre 48 h) via `store/cache.py` — suffisant pour la carte et le scrubber, survit aux redémarrages, zéro dépendance. **DuckDB différé à M5/M6**, introduit quand le SQL paie vraiment (duration curves, corrélations, agrégats 30 j).
+- Scheduler : `APScheduler` — **un seul** job de refresh (60 min) qui reconstruit live **et** historique en un sweep (pas de backfill séparé, cf. §3.3).
 - Validation : Pydantic v2 (modèles typés en sortie d'API).
 
 **Frontend** — React + TypeScript + **Vite**
-- Carte + flux : **deck.gl** (`ArcLayer` pour les flux animés, `GeoJsonLayer` pour les zones colorées) au-dessus d'un basemap **MapLibre GL**. C'est le combo canonique pour des arcs directionnels animés et performants (GPU). *Animation des arcs : dash/trips animé via `getSourcePosition/getTargetPosition` + `currentTime` uniform, ou `TripsLayer` pour l'effet « particules ».*
-- Charts : **Recharts** (séries temporelles, ton habitude) + **ECharts** (ou `@nivo`) pour **Sankey** et **heatmap matricielle** des spreads.
-- Données/cache front : **TanStack Query** (refetch interval pour le live, invalidation, stale-while-revalidate).
-- Styling : **Tailwind CSS**. Transitions : Framer Motion.
-- Échelles couleur : `d3-scale-chromatic` (palettes perceptuellement uniformes).
+- Carte + flux : **deck.gl** (`GeoJsonLayer` pour les zones colorées, `LineLayer` + `AnimatedArcLayer` **maison** pour les flux) au-dessus d'un basemap **MapLibre GL** via `MapboxOverlay`. *Arcs animés (M3) = shader « comet » maison piloté sur l'horloge murale — **pas** `TripsLayer`.* Échelle de couleur prix **faite main** (`priceColor.ts`, prix négatifs distincts).
+- Données/polling : **fetch maison** (pas de lib) — polling du snapshot + un GET `/api/history` rejoué côté client. Suffit pour le live + le scrubber.
+- Styling : **Tailwind CSS** (v4).
+- Libs analytics **ajoutées à la demande quand un panel les exige, pas avant** (≠ « do not deviate ») : **Recharts/ECharts** (séries, Sankey, heatmap matricielle) → **M5** ; `d3-scale-chromatic` / Framer Motion seulement si un besoin concret apparaît ; **TanStack Query** non requis tant que le polling maison suffit.
 
 **Infra** — `docker-compose` (backend + front + DuckDB volume) → run en une commande.
 
@@ -179,14 +184,14 @@ fluxeu/
 
 ### 3.3 Flux de données (ingestion → API → front)
 
-1. **Ingestion** : job APScheduler appelle la `DataSource` active (Energy-Charts par défaut, ENTSO-E si token) → normalise → **upsert DuckDB** (historique) + **TTL cache** (snapshot live).
-2. **Backfill** initial : au boot, charger N jours d'historique (respect des limites ENTSO-E : fenêtres ≤ 1 an, pagination par TimeSeries, backoff exponentiel — `entsoe-py` gère déjà le retry).
-3. **API** : routers servent (a) un **snapshot live** consolidé pour la carte, (b) des **séries temporelles** par zone/frontière, (c) des **agrégats analytics** (calculés en SQL DuckDB).
-4. **Front** : TanStack Query poll le snapshot (interval = refresh backend), le scrubber requête les séries 48 h, les panels requêtent à la demande.
+1. **Ingestion** : un job APScheduler (60 min) appelle la `DataSource` active (Energy-Charts par défaut, ENTSO-E si token) → un **sweep sérialisé/pacé** construit la fenêtre 48 h → **cache mémoire (TTL) + persistance JSON disque**. Pas de DB pour le live/scrubber (DuckDB arrive en M5/M6).
+2. **Pas de backfill séparé en M4** : Energy-Charts renvoie toute la fenêtre temporelle en **un seul appel** par série → on **élargit le sweep à 48 h** et on **conserve la série** (le live = dernier point). Le backfill long (≥ 30 j) via ENTSO-E (fenêtres ≤ 1 an, pagination TimeSeries, backoff — `entsoe-py` gère le retry) est un sujet **M6**, porté par DuckDB.
+3. **API** : routers servent (a) un **snapshot live** consolidé pour la carte, (b) la **fenêtre d'historique 48 h** en **un GET** (`/api/history`) que le front rejoue, (c) plus tard des **agrégats analytics** (SQL DuckDB, M5+).
+4. **Front** : polling maison du snapshot (interval = refresh backend) ; le scrubber charge `/api/history` **une fois** et rejoue la fenêtre **côté client** (pas de GET par instant) ; les panels (M5) requêtent à la demande.
 
 ### 3.4 Modèle de données
 
-**Pydantic (backend, extrait)**
+**Pydantic (backend) — modèles réels.** Prix au niveau **zone (BZ)**, flux au niveau **pays (ISO-2)** en démo Energy-Charts : deux graphes distincts, assumés explicitement (`granularity` le documente dans chaque réponse).
 
 ```python
 class Zone(BaseModel):
@@ -197,55 +202,76 @@ class Zone(BaseModel):
     centroid: tuple[float, float]   # (lon, lat)
     tso: list[str]
     capacity_regime: Literal["NTC", "FLOW_BASED"]
+    region: str | None
+    has_geometry: bool
 
-class PricePoint(BaseModel):
-    zone: str            # key
-    ts: datetime         # UTC
-    eur_mwh: float
+class FlowNode(BaseModel):           # graphe PAYS (limite démo Energy-Charts)
+    code: str                        # ISO-2
+    name: str
+    centroid: tuple[float, float]
+    zones: list[str]                 # zones membres
 
 class FlowEdge(BaseModel):
-    from_zone: str
+    from_zone: str       # code FlowNode (PAYS en démo ; ZONE avec ENTSO-E, M6)
     to_zone: str
     ts: datetime
-    commercial_mw: float | None   # signé: + = from→to
+    commercial_mw: float | None      # signé: + = from→to
     physical_mw: float | None
-    ntc_mw: float | None          # null si FLOW_BASED
+    ntc_mw: float | None             # None en démo — Energy-Charts n'expose pas de NTC (gated ENTSO-E, M6)
     capacity_regime: Literal["NTC", "FLOW_BASED"]
 
 class LiveSnapshot(BaseModel):
-    ts: datetime
-    prices: dict[str, float]                 # key -> eur_mwh
+    ts: datetime                     # build time
+    source: str
+    data_ts: datetime | None         # heure réelle de la donnée marché
+    granularity: dict[str, str]      # {"prices": "bidding_zone", "flows": "country"}
+    prices: dict[str, float]         # zone key -> eur_mwh
+    nodes: list[FlowNode]
     edges: list[FlowEdge]
-    net_positions: dict[str, float]          # key -> MW (+import / -export, à fixer & documenter)
-    generation_mix: dict[str, dict[str, float]] | None  # key -> {fuel: MW}
+    net_positions: dict[str, float]  # FlowNode code -> MW (+ = import)
 
+# --- historique / scrubber (M4) : même sweep, prix en palier (step) ---
+class HistoryFrame(BaseModel):
+    ts: datetime
+    prices: dict[str, float]
+    net_positions: dict[str, float]
+    edges: list[FlowEdge]
+
+class SnapshotHistory(BaseModel):
+    ts: datetime; source: str; granularity: dict[str, str]
+    nodes: list[FlowNode]            # statiques sur la fenêtre
+    start: datetime; end: datetime
+    frames: list[HistoryFrame]       # ascendants par ts
+
+# --- M5 (métriques dérivées) ---
 class BorderMetric(BaseModel):
     from_zone: str; to_zone: str
     spread_eur_mwh: float
     congestion_income_eur: float | None
-    utilisation: float | None     # 0..1, NTC only
+    utilisation: float | None        # 0..1, NTC only -> gated ENTSO-E (M6)
 ```
 
-**TypeScript (frontend, miroir)** — mêmes interfaces dans `types.ts` (générer via `datamodel-codegen`/zod ou maintenir à la main, mais **garder strictement synchrone**).
+> `generation_mix` **n'est pas** dans le snapshot live (ce serait un appel `/public_power` par pays sur une API déjà saturée, inutile à la carte) → chargé **à la demande** dans le dashboard zone (M5). Flux **zone→zone** : débloqués par ENTSO-E (M6) ; en démo le graphe de flux est **pays-niveau** (`FlowNode` ISO-2).
+
+**TypeScript (frontend, miroir)** — mêmes interfaces dans `types.ts`, maintenues à la main, **strictement synchrones**.
 
 ### 3.5 Contrat d'API (REST)
 
-| Méthode | Route | Réponse | Usage |
+| Méthode | Route | Réponse | État |
 |---|---|---|---|
-| GET | `/api/zones` | `Zone[]` | métadonnées + géométrie refs |
-| GET | `/api/interconnectors` | `Interconnector[]` | frontières + métadonnées câbles |
-| GET | `/api/snapshot/live` | `LiveSnapshot` | **carte** (prix + arcs + positions) |
-| GET | `/api/snapshot?ts=ISO` | `LiveSnapshot` | scrubber (instant T) |
-| GET | `/api/prices?zone=&from=&to=` | `PricePoint[]` | série prix |
-| GET | `/api/flows?from=&to=&start=&end=` | `FlowEdge[]` | série flux d'une frontière |
-| GET | `/api/zones/{key}/dashboard?from=&to=` | objet agrégé | dashboard zone (prix, load, mix, voisins) |
-| GET | `/api/metrics/congestion?ts=` | `BorderMetric[]` | heatmap + leaderboard |
-| GET | `/api/metrics/convergence?from=&to=` | série indice | KPI intégration |
-| GET | `/api/sankey?ts=` | nodes+links | Sankey flux nets |
-| GET | `/api/export.csv?...` | text/csv | download analytics |
-| GET | `/api/health` | `{status, source, last_refresh}` | statut + source active |
+| GET | `/api/health` | `{status, source, last_refresh, ts}` | ✅ construit |
+| GET | `/api/zones` · `/api/zones.geojson` | `Zone[]` / GeoJSON | ✅ construit |
+| GET | `/api/interconnectors` | `Interconnector[]` | ✅ construit — frontières + câbles |
+| GET | `/api/snapshot/live` | `LiveSnapshot` | ✅ construit — **carte** (prix + arcs + positions) |
+| GET | `/api/history` | `SnapshotHistory` | ✅ construit (M4) — **un GET = toute la fenêtre 48 h**, rejouée côté front |
+| GET | `/api/zones/{key}/dashboard?from=&to=` | objet agrégé | ⬜ M5 — prix/charge/mix/voisins (mix via `/public_power` à la demande) |
+| GET | `/api/metrics/congestion?ts=` | `BorderMetric[]` | ⬜ M5 — heatmap + leaderboard |
+| GET | `/api/metrics/convergence?from=&to=` | série indice | ⬜ M5 — KPI intégration |
+| GET | `/api/sankey?ts=` | nodes+links | ⬜ M5 — Sankey flux nets |
+| GET | `/api/prices` · `/api/flows` | séries | ⬜ M6 — séries zone-level (ENTSO-E) |
+| GET | `/api/export.csv?...` | text/csv | ⬜ M6 — download analytics |
 
-CORS ouvert au front en dev. Réponses datées en **UTC ISO-8601**.
+> **Abandonné : `/api/snapshot?ts=` par instant.** Le front tient la fenêtre entière (`/api/history`) et la rejoue côté client → pas de GET par point. CORS ouvert au front en dev. Réponses datées en **UTC ISO-8601**.
 
 ---
 
@@ -255,11 +281,11 @@ CORS ouvert au front en dev. Réponses datées en **UTC ISO-8601**.
 
 - Carte d'Europe (MapLibre dark basemap), zones (`GeoJsonLayer`) **colorées par prix day-ahead** courant (échelle €/MWh, palette continue + gestion **prix négatifs** distincte, ex. teinte froide saturée).
 - **Arcs animés** (`ArcLayer`/`TripsLayer`) entre centroïdes : épaisseur ∝ `|MW|`, **sens animé** = direction du flux, couleur = intensité ou zone source. Toggle **Commercial ⇄ Physique**.
-- **Time scrubber** (slider 48 h, + play/pause, vitesse) → rejoue prix+flux ; pré-charge la fenêtre côté front, interpole l'affichage.
+- **Time scrubber** (slider 48 h + play/pause + vitesse) → rejoue prix+flux. **Un seul GET `/api/history`**, rejeu **côté client** ; playhead en boucle **`requestAnimationFrame`** (slider/label mis à jour **impérativement** via refs — **pas de state React par frame**). **Prix en palier (step)** par MTU, jamais interpolés (un prix day-ahead est constant sur sa MTU) ; les flux peuvent se lisser.
 - Hover zone → tooltip : prix, position nette, mini-donut mix, charge.
 - Hover/clic arc → panneau frontière : flux courant, NTC & utilisation (si NTC), price spread, rente de congestion ; lien vers détail (§4.3).
 - Légende + sélecteur de date.
-- **DoD** : au chargement, prix réels + ≥ 15 arcs cohérents ; scrubber fluide (≥ 30 fps) sur 48 h ; toggle commercial/physique fonctionne ; prix négatifs visuellement distincts.
+- **DoD** : au chargement, prix réels + ≥ 15 arcs cohérents ; toggle commercial/physique fonctionne ; prix négatifs visuellement distincts ; scrubber **rejoue 48 h de façon fluide en step horaire** (playhead rAF, **0 appel API supplémentaire**), gère les trous (zone grise / arc absent) sans flicker, labels Europe/Brussels dérivés de l'UTC (DST), retour live OK.
 
 ### 4.2 Convergence / congestion
 
@@ -270,9 +296,9 @@ CORS ouvert au front en dev. Réponses datées en **UTC ISO-8601**.
 
 ### 4.3 Explorateur d'interconnexions
 
-- Table cherchable/filtrable : toutes les frontières + câbles DC nommés (IFA, IFA2, ElecLink, BritNed, NemoLink, NSL, Viking, NorNed, NordLink, COBRA, EstLink, NordBalt, INELFE…) avec capacité, techno (HVAC/HVDC), longueur, année, propriétaire, **utilisation live**.
-- **Page détail/frontière** : séries **flux physique vs programmé**, **NTC vs flux**, **duration curve** d'utilisation, **price spread overlay**, rente de congestion cumulée.
-- **DoD** : recherche fonctionne ; page détail trace ≥ 7 j d'historique ; FBMC → pas de barre d'utilisation factice (affiche « flow-based », capacité commerciale si dispo).
+- Table cherchable/filtrable : toutes les frontières + câbles DC nommés (IFA, IFA2, ElecLink, BritNed, NemoLink, NSL, Viking, NorNed, NordLink, COBRA, EstLink, NordBalt, INELFE…) avec capacité, techno (HVAC/HVDC), longueur, année, propriétaire, **flux live mesuré**. *(« Taux d'utilisation » = `flux/NTC` → **nécessite un NTC, gated ENTSO-E M6** ; Energy-Charts n'en expose aucun, donc en démo : flux mesuré uniquement.)*
+- **Page détail/frontière** : séries **flux physique vs programmé**, **price spread overlay**, rente de congestion ; **NTC vs flux + duration curve d'utilisation = M6** (ENTSO-E).
+- **DoD** : recherche fonctionne ; page détail trace l'historique disponible ; FBMC **et démo Energy-Charts** → **pas de barre d'utilisation factice** (affiche « flow-based / flux mesuré » ; `ntc_mw = None` jamais inventé).
 
 ### 4.4 Dashboard zone/pays
 
@@ -395,13 +421,13 @@ But : ça doit ressembler à un **terminal de marché énergie**, pas à un dash
 
 > Chaque jalon est **vérifiable** seul. Construire dans cet ordre ; ne pas avancer si le DoD du jalon n'est pas vert.
 
-- **M0 — Scaffold.** Monorepo, `docker-compose`, FastAPI `health`, Vite+React+TS+Tailwind, MapLibre dark qui rend l'Europe. ✅ quand `docker compose up` sert front+back et la carte s'affiche.
-- **M1 — Référentiel zones/frontières.** Charger `entsoe-py` `Area`/`NEIGHBOURS` → générer `data/zones.json` + `data/interconnectors.json` (fusionner starter §6), récupérer `zones.geojson`, calculer centroïdes manquants. Endpoints `/api/zones`, `/api/interconnectors`. ✅ quand les zones s'affichent en polygones et les paires de frontières sont correctes.
-- **M2 — Source Energy-Charts (no key) + snapshot live.** Impl `energy_charts.py`, normalisation, TTL cache, `/api/snapshot/live`. ✅ quand prix réels + flux réels reviennent en JSON daté UTC.
-- **M3 — Carte live (hero).** Zones colorées par prix + `ArcLayer` flux animés + toggle commercial/physique + tooltips. ✅ critères §4.1 (hors scrubber).
-- **M4 — Historique DuckDB + scrubber + séries.** Backfill 48 h–30 j, `/api/snapshot?ts=`, `/api/prices`, `/api/flows`, time scrubber animé. ✅ scrubber fluide + séries tracées.
-- **M5 — Métriques & panels.** `metrics.py` (spread, rente, convergence), Congestion panel (heatmap+leaderboard), Interconnector explorer + page détail, Zone dashboard, Sankey. ✅ critères §4.2–4.5.
-- **M6 — Analytics + polish + ENTSO-E upgrade.** Export CSV, duration/corrélations, design pass complet, **brancher `entsoe.py`** si token (sélection auto de source via `/api/health`), tests pytest/Vitest, README. ✅ DoD global §10.
+- **M0 — Scaffold.** ✅ Monorepo, `docker-compose`, FastAPI `health`, Vite+React+TS+**Tailwind v4**, MapLibre dark qui rend l'Europe.
+- **M1 — Référentiel zones/frontières.** ✅ `entsoe-py` `Area`/`NEIGHBOURS` → `data/zones.json` + `data/interconnectors.json` (fusion starter §6) + `zones.geojson` + centroïdes ; `/api/zones(.geojson)`, `/api/interconnectors`.
+- **M2 — Source Energy-Charts (no key) + snapshot live.** ✅ `energy_charts.py`, normalisation, `/api/snapshot/live`. **Réalité (≠ plan initial)** : rate limit ~1 req/7.5 s, sweep **~15–25 min**, **refresh 60 min** (pas 5–15), **persistance disque** + cold-start servi du cache. Flux **pays-niveau**, prix **zone-niveau**.
+- **M3 — Carte live (hero).** ✅ Zones colorées par prix + flux animés + toggle commercial/physique + tooltips. **Réalité** : `AnimatedArcLayer` (shader « comet » maison sur horloge murale), **pas** `TripsLayer` ; échelle prix maison.
+- **M4 — Historique court + scrubber (SANS DuckDB).** ✅ Refactor `_fetch_*` → **séries** (live = dernier point) ; **lookback élargi à 48 h** (même nb d'appels) ; séries **persistées (JSON)** ; **`/api/history`** (un GET) ; `TimeScrubber` **rAF + step**. **DoD** : rejeu 48 h fluide, séries cohérentes, **0 appel API en plus**, prix en palier, retour live OK. *(DuckDB volontairement reporté à M5 — surdimensionné pour ~48 points horaires.)*
+- **M5 — Métriques, DuckDB (substrat) & panels.** ⬜ **Introduire DuckDB ici** (accumulation durable + SQL) : `metrics.py` (spread, rente, convergence, duration curves) ; Congestion (heatmap+leaderboard), Interconnector explorer + page détail, Zone dashboard (mix via `/public_power` à la demande), Sankey. **Ajouter ECharts/Recharts.** NTC/utilisation **seulement** si ENTSO-E, sinon « flow-based ». ✅ critères §4.2–4.5.
+- **M6 — Analytics + polish + ENTSO-E upgrade.** ⬜ Brancher `entsoe.py` si token (sélection auto via `/api/health`) → **NTC réels + flux zone→zone** (débloque utilisation + arcs par zone) ; export CSV, duration/corrélations (DuckDB) ; tests pytest/Vitest, design pass. ✅ DoD global §10.
 - **M7 (option)** — Module modélisation (§4.7) + alertes (§4.8).
 
 ---
@@ -419,6 +445,8 @@ But : ça doit ressembler à un **terminal de marché énergie**, pas à un dash
 9. **Centroïdes** : un arc mal ancré = carte moche. Calculer le centroïde **du polygone de zone**, pas du pays, pour les zones splittées.
 10. **Charge perf carte** : deck.gl GPU ok, mais limiter le nb d'arcs visibles (filtrer |MW| < seuil), throttler les updates live.
 11. **Cohérence Sankey/positions nettes** : la somme des flux doit réconcilier les positions nettes par zone — ajouter un test.
+12. **Rate limit Energy-Charts ≠ ENTSO-E** : le tier gratuit est un token bucket ~1 req/7.5 s, `429` punitif escaladant (cf. §2.1) — c'est **la contrainte n°1**, pas un détail. Sweep sérialisé/pacé + persistance disque + refresh 60 min. L'historique 48 h sort **du même sweep** (un appel = toute la fenêtre) : ne **jamais** ajouter un job de backfill qui re-paie le rate limit.
+13. **Scrubber : rAF, pas de state React par frame ; prix en step** : piloter le playhead à 60 fps via `useState` = tempête de re-render (MapView reconstruit ses layers). → boucle `requestAnimationFrame` + update impératif (refs), React ne bouge que quand l'**index de frame** change. Et les **prix sont en palier** (constants par MTU) : les interpoler invente des prix qui n'ont jamais existé — seuls les flux physiques se lissent.
 
 ---
 
@@ -432,7 +460,7 @@ Voir le fichier `CLAUDE.md` à la racine du repo (déjà en place).
 
 ## 10. Definition of Done (global)
 
-- [ ] `docker compose up` → app complète, **zéro config**, en mode Energy-Charts (démo) ; bascule ENTSO-E si token.
+- [ ] `docker compose up` → app complète en mode Energy-Charts (démo) ; bascule ENTSO-E si token. ⚠️ **Nuance cold-start** : instantané **après le 1ᵉ build** (cache `data/*.cache.json` servi aussitôt) ; sur un tout premier boot **sans cache**, la carte affiche un badge *warming* et `/api/snapshot/live` renvoie `503 + Retry-After` pendant le sweep (~15–25 min). Embarquer un cache *seed* dans l'image pour un vrai « zéro attente ».
 - [ ] Carte live : zones colorées par prix réel + arcs animés cohérents + toggle commercial/physique + scrubber 48 h fluide + prix négatifs distincts.
 - [ ] Congestion : heatmap spreads + leaderboard + indice de convergence.
 - [ ] Explorateur d'interconnexions + pages détail (flux phys/prog, NTC vs flux, duration, spread, rente).
