@@ -4,6 +4,7 @@ import TimeScrubber from "./map/TimeScrubber";
 import PanelDock from "./panels/PanelDock";
 import CongestionPanel from "./panels/CongestionPanel";
 import SankeyPanel from "./panels/SankeyPanel";
+import ExplorerPanel from "./panels/ExplorerPanel";
 import { priceRampCss } from "./map/priceColor";
 import {
   fetchHealth,
@@ -44,7 +45,9 @@ export default function App() {
   const [scrubIndex, setScrubIndex] = useState<number | null>(null); // null = live
   const [warming, setWarming] = useState(false);
   const [mode, setMode] = useState<FlowMode>("commercial");
-  const [panel, setPanel] = useState<"none" | "congestion" | "sankey">("none");
+  const [panel, setPanel] = useState<
+    "none" | "congestion" | "sankey" | "explorer"
+  >("none");
 
   useEffect(() => {
     fetchHealth()
@@ -140,6 +143,10 @@ export default function App() {
     sankey: {
       title: "Flux nets — Sankey",
       subtitle: "échanges commerciaux · exporteur → importateur",
+    },
+    explorer: {
+      title: "Interconnexions",
+      subtitle: "frontières & câbles · flux 48 h",
     },
   } as const;
 
@@ -259,6 +266,13 @@ export default function App() {
           >
             ⇄ Flux
           </button>
+          <button
+            onClick={() => setPanel("explorer")}
+            className="rounded-l-lg border border-r-0 border-white/10 bg-surface-1/85 px-3 py-3 font-mono text-xs text-slate-300 backdrop-blur transition-colors hover:text-accent"
+            title="Explorateur d'interconnexions"
+          >
+            ⇉ Interco
+          </button>
         </div>
       )}
 
@@ -270,6 +284,9 @@ export default function App() {
       >
         {panel === "congestion" && <CongestionPanel />}
         {panel === "sankey" && <SankeyPanel />}
+        {panel === "explorer" && (
+          <ExplorerPanel borders={borders} history={history} snapshot={snapshot} />
+        )}
       </PanelDock>
     </div>
   );

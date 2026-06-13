@@ -19,7 +19,7 @@ Build roadmap (see [PLAN.md](PLAN.md) §7):
 | M2 | Energy-Charts source (no key) + live snapshot | ✅ |
 | M3 | Live map hero (price choropleth + animated flow arcs) | ✅ |
 | M4 | 48 h history + time scrubber (no DuckDB) | ✅ |
-| M5 | Metrics & panels (congestion ✅, Sankey ✅, then explorer / zone dashboard) | 🔵 |
+| M5 | Metrics & panels (congestion ✅, Sankey ✅, explorer ✅, then zone dashboard) | 🔵 |
 | M6 | Analytics + DuckDB + ENTSO-E upgrade (NTC, zone-level flows) | ⬜ |
 
 ## Quick start
