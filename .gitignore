@@ -19,6 +19,8 @@ dist/
 # data artifacts
 *.duckdb
 *.duckdb.wal
+snapshot.cache.json
+backend/resp.json
 
 # editor / os
 .vscode/

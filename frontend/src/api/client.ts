@@ -1,4 +1,9 @@
-import type { Interconnector, Zone, ZonesGeoJSON } from "../types";
+import type {
+  Interconnector,
+  LiveSnapshot,
+  Zone,
+  ZonesGeoJSON,
+} from "../types";
 
 export interface Health {
   status: string;
@@ -18,3 +23,5 @@ export const fetchZones = () => get<Zone[]>("/api/zones");
 export const fetchInterconnectors = () =>
   get<Interconnector[]>("/api/interconnectors");
 export const fetchZonesGeoJSON = () => get<ZonesGeoJSON>("/api/zones.geojson");
+export const fetchLiveSnapshot = () =>
+  get<LiveSnapshot>("/api/snapshot/live");
