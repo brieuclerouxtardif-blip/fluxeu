@@ -7,7 +7,7 @@ updated: 2026-06-14
 # 🛣️ Jalons
 
 Build **strictement par jalons** M0→M7 ; ne pas avancer si le DoD du jalon n'est pas vert
-(`PLAN.md` §7, DoD global §10). **Vérité d'avancement = `git log`**, pas le `README.md` (figé à M5).
+(`PLAN.md` §7, DoD global §10). **Vérité d'avancement = `git log`** (les docs peuvent prendre du retard sur le dernier commit).
 
 ## Statut
 
@@ -20,13 +20,15 @@ Build **strictement par jalons** M0→M7 ; ne pas avancer si le DoD du jalon n'e
 | M4 | Historique 48 h + time scrubber (sans DuckDB) | ✅ poussé |
 | M5 | Métriques en mémoire + 4 panneaux | ✅ poussé |
 | **M6** | Analytics + **DuckDB** + **ENTSO-E** (gated) | ✅ poussé (`095af0e`) ⏳ live token |
-| **M7** | Alertes + Modélisation (option §4.7–4.8) | 🟧 **non commité** |
+| **M7** | Alertes + Modélisation (option §4.7–4.8) | ✅ poussé (`d7225ba`) |
 
 → [[Socle M0-M5]] · [[Jalon M6]] · [[Jalon M7]]
 
 ## Historique git (`main`)
 
 ```
+8723164  docs: vault Obsidian (docs/) + README à M6/M7
+d7225ba  M7 (alerts + forward model): /api/alerts + /api/model/forward
 095af0e  M6 (analytics): DuckDB + SQL analytics + CSV + Analytics panel; entsoe câblé
 56ebae4  M5 (zone dashboard)
 dd2d056  M5 (explorer)
@@ -42,9 +44,7 @@ b8bed5d  fix(frontend): map sizing
 
 ## Prochaines étapes
 
-1. **Commit + push M7** (non fait, **non autorisé** — pousser = action sortante à confirmer). Style per-jalon comme M6.
-2. **À réception du token** [[ENTSO-E]] : vérifier le chemin live (NTC réels + flux zone→zone end-to-end).
-3. Optionnel : vrai modèle merit-order / `peakero-forecaster` ([[Jalon M7]]) ; sandbox scénario ; couche carbone Electricity Maps ; Vitest (non câblé).
-4. Mettre à jour le `README.md` du repo (figé à M5).
+1. **À réception du token** [[ENTSO-E]] : vérifier le chemin live (NTC réels + flux zone→zone end-to-end). Seul vrai reste.
+2. Optionnel : vrai modèle merit-order / `peakero-forecaster` ([[Jalon M7]]) ; sandbox scénario ; couche carbone Electricity Maps ; Vitest (non câblé).
 
 Voir aussi : [[FluxEU]] · [[Conventions et pièges]]

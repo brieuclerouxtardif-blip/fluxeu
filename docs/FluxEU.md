@@ -22,16 +22,15 @@ Démarre **sans clé** (Energy-Charts), monte en puissance avec **ENTSO-E** (tok
 4. [[Carte des fichiers]] — « où est quoi » (chaque fichier → 1 ligne).
 5. Le [[Jalons|jalon]] concerné pour le contexte de la feature.
 
-> ⚠️ Avant tout : `git log --oneline` pour l'état réel. Le `README.md` du repo est **figé à M5** et ne reflète pas M6/M7.
+> ⚠️ Avant tout : `git log --oneline` pour l'état réel d'avancement — **la source de vérité** (les docs peuvent prendre du retard sur le dernier commit).
 
 ## 📍 État actuel (2026-06-14)
 
 | | |
 |---|---|
-| **Branche** | `main` @ `095af0e` (suit `origin/main`) |
-| **Poussé** | M0 → **M6** ✅ |
-| **En working tree (non commité)** | **M7** (alertes + forward model) — voir [[Jalon M7]] |
-| **Bloqué sur token** | chemin live ENTSO-E (NTC réels + flux zone→zone) — voir [[ENTSO-E]] |
+| **Branche** | `main` @ `8723164` (à jour avec `origin/main`) |
+| **Poussé** | M0 → **M7** ✅ + vault `docs/` |
+| **Reste (token requis)** | chemin live ENTSO-E (NTC réels + flux zone→zone) — voir [[ENTSO-E]] |
 | **Tests** | pytest **53 passés, 1 skipped** ; build front `tsc`+`vite` vert |
 | **Token ENTSO-E** | demandé le 2026-06-14, ~3 j ouvrés d'attente |
 

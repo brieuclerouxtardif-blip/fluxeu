@@ -1,14 +1,14 @@
 ---
 tags: [milestone, fluxeu, optional]
-status: wip
+status: done
 updated: 2026-06-14
-commit: non commité (working tree)
+commit: d7225ba
 ---
 
 # 🚨 M7 — Alertes & Modélisation (option)
 
 Module optionnel `PLAN.md` §4.7 (modélisation) + §4.8 (alertes). **Construit, vérifié live,
-mais NON commité** (working tree). Pousser = action sortante → **à confirmer** (l'autorisation M6 ne couvre pas M7). Voir [[Jalons]].
+poussé** (`d7225ba`). Voir [[Jalons]].
 
 ## Alertes / signaux (§4.8) ✅
 
@@ -28,7 +28,7 @@ mais NON commité** (working tree). Pousser = action sortante → **à confirmer
 
 pytest **53 passés, 1 skipped** ; build front vert. Live : badge « ⚠ 12 alertes » (3 crit + 9 warn), feed 12 items triés (FR–IT-NORD 89, HU–SK 84…), ModelPanel graphe rendu + `/api/model/forward?zone=FR` appelé, 0 erreur console.
 
-## Fichiers (non commités)
+## Fichiers (commit `d7225ba`)
 
 `backend/app/domain/alerts.py` · `domain/model.py` · `routers/alerts.py` · `routers/model.py` · `tests/test_alerts.py` · `tests/test_model.py` · `frontend/src/panels/AlertsPanel.tsx` · `panels/ModelPanel.tsx` (+ modifs `main.py`, `models.py`, `App.tsx`, `api/client.ts`, `types.ts`, `PLAN.md`).
 

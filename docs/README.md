@@ -16,7 +16,7 @@ travail restent à la racine du repo.
 |---|---|
 | `PLAN.md` | **Spec unique** — domaine, archi, contrat d'API, jalons, pièges. |
 | `CLAUDE.md` | Working agreement (stack figée, règles dures, ordre de build). |
-| `README.md` | Vitrine publique du repo (⚠️ figée à M5, voir [[Jalons]]). |
+| `README.md` | Vitrine publique du repo (à jour M6/M7). |
 | `git log` | Vérité d'avancement réelle (1 commit ≈ 1 sous-jalon). |
 
 > Le vault **résume et relie** ces sources ; en cas de conflit, **`PLAN.md` gagne**.

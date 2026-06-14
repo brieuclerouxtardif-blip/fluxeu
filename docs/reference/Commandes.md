@@ -46,13 +46,13 @@ npm --prefix frontend run build             # tsc + vite (doit être vert)
 
 ```powershell
 git log --oneline -15        # vérité d'avancement
-git status --short           # M7 non commité (working tree)
+git status --short           # arbre de travail
 git branch -vv               # main suit origin/main
 ```
 
-- **Repo** : GitHub public `brieuclerouxtardif-blip/fluxeu`. `main` @ `095af0e` (M6 poussé).
+- **Repo** : GitHub public `brieuclerouxtardif-blip/fluxeu`. `main` @ `8723164` (M0→M7 + vault `docs/` poussés).
 - ⚠️ **Ne jamais committer** : token (`.env`), `data/*.cache.json`, `data/*.duckdb*` (gitignored — [[Conventions et pièges]]).
-- **Commit/push seulement sur demande** ; style per-jalon (cf. [[Jalon M7]] à pousser).
+- **Commit/push seulement sur demande** ; style per-jalon (cf. [[Jalons]]).
 
 ## ENTSO-E (à réception du token)
 
