@@ -6,14 +6,21 @@
 
 ## Status
 
-📊 **M5 — Analytics panels** (current): four dockable panels beside the live map, all derived **in-memory** from the cached snapshot + 48 h history (no extra API calls, no database):
+🚦 **M7 (optional module) — alerts & forward model** (current): a live signal feed and a baseline forward curve, layered on the shipped stack below.
+
+- **Alertes** — `GET /api/alerts`: negative prices, price spikes (absolute **and** statistical z-score vs the zone's own 48 h distribution), congested borders, near-full NTC (inert until ENTSO-E). Header badge + severity-sorted feed.
+- **Modélisation** — `GET /api/model/forward`: a seasonal-naive baseline (hour-of-day p10/p50/p90 from the DuckDB history, Europe/Brussels) overlaid on the realized 48 h spot — an explicit placeholder for a real merit-order / forecaster model.
+
+📊 **M6 — analytics + DuckDB + ENTSO-E** (shipped): a durable **DuckDB** store accumulates long history for SQL analytics — multi-zone price compare, **duration curves**, a daltonian-safe **correlation heatmap**, **CSV export** (`/api/prices`, `/api/flows`, `/api/analytics/*`, `/api/export.csv`). The authoritative **ENTSO-E** source is written and wired (auto-selected when a token is present); its live path — real NTC + zone-level flows — activates on token arrival.
+
+📊 **M5 — analytics panels**: four dockable panels derived **in-memory** from the cached snapshot + 48 h history (no extra API calls):
 
 - **Congestion** — zone-level price-spread leaderboard (incl. intra-country splits) + a 48 h market-convergence curve; congestion rent shown only where it is attributable.
 - **Flux** — a **bipartite net-flow Sankey** (who exports to whom); modelled export-side → import-side so it is acyclic and per-country `in − out` equals net position.
 - **Interconnexions** — searchable border explorer; per-border detail with named DC cables and a 48 h **commercial-vs-physical** flow chart + price-spread overlay.
 - **Zone** — per-zone 48 h price curve (stepped), country net position, neighbour exchanges.
 
-Earlier milestones, still live: a **48 h time scrubber** (M4 — one `GET /api/history`, replayed client-side on a `requestAnimationFrame` playhead, prices stepped) over the **hero map** (M3 — bidding zones colored by day-ahead price, animated cross-border flow arcs, commercial ⇄ physical toggle), on the M2 Energy-Charts snapshot. DuckDB and NTC/zone-level flows arrive at M6 with ENTSO-E.
+Earlier milestones, still live: a **48 h time scrubber** (M4 — one `GET /api/history`, replayed client-side on a `requestAnimationFrame` playhead, prices stepped) over the **hero map** (M3 — bidding zones colored by day-ahead price, animated cross-border flow arcs, commercial ⇄ physical toggle), on the M2 Energy-Charts snapshot.
 
 Build roadmap (see [PLAN.md](PLAN.md) §7):
 
@@ -25,7 +32,10 @@ Build roadmap (see [PLAN.md](PLAN.md) §7):
 | M3 | Live map hero (price choropleth + animated flow arcs) | ✅ |
 | M4 | 48 h history + time scrubber (no DuckDB) | ✅ |
 | M5 | Metrics & panels — congestion, Sankey, interconnector explorer, zone dashboard | ✅ |
-| M6 | Analytics + DuckDB + ENTSO-E upgrade (NTC, zone-level flows) | ⬜ |
+| M6 | Analytics + DuckDB + ENTSO-E upgrade (NTC, zone-level flows) | ✅ · live ENTSO-E path token-gated |
+| M7 | (optional) Alerts + forward-model module | ✅ |
+
+> **Project notes:** an Obsidian knowledge vault for the project lives in [`docs/`](docs/) (start at `docs/FluxEU.md`) — architecture, milestones, decisions, and a file map, kept navigable for fast onboarding.
 
 ## Quick start
 
@@ -75,11 +85,16 @@ npm run dev
 | `GET /api/metrics/congestion` | zone-level price spreads (leaderboard / heatmap), descending |
 | `GET /api/metrics/convergence` | 48 h price dispersion + share of coupled borders |
 | `GET /api/metrics/sankey` | bipartite net-flow graph (exporter → importer) |
+| `GET /api/prices` · `/api/flows` | DuckDB time series (zone prices / border flows) |
+| `GET /api/analytics/coverage` · `/duration` · `/correlation` | history coverage, price duration curve, zonal correlation matrix |
+| `GET /api/export.csv?table=prices\|flows` | CSV download |
+| `GET /api/alerts` | `AlertsSnapshot` — negative prices, spikes, congestion, near-full NTC |
+| `GET /api/model/forward?zone=&horizon=` | `ForwardCurve` — seasonal-naive forward + realized spot |
 
 ## Architecture
 
 ```
-backend/   FastAPI · entsoe-py + httpx · APScheduler · Pydantic v2 · JSON disk cache (DuckDB at M6)
+backend/   FastAPI · entsoe-py + httpx · APScheduler · Pydantic v2 · JSON disk cache + DuckDB analytics store
 frontend/  React + TS + Vite · deck.gl over MapLibre GL · ECharts · Tailwind
 data/      zones.json · interconnectors.json · zones.geojson (generated at M1)
            snapshot.cache.json · history.cache.json (persisted at runtime, gitignored)

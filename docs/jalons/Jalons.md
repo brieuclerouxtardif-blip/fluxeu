@@ -1,0 +1,50 @@
+---
+tags: [moc, milestone, fluxeu]
+status: wip
+updated: 2026-06-14
+---
+
+# 🛣️ Jalons
+
+Build **strictement par jalons** M0→M7 ; ne pas avancer si le DoD du jalon n'est pas vert
+(`PLAN.md` §7, DoD global §10). **Vérité d'avancement = `git log`**, pas le `README.md` (figé à M5).
+
+## Statut
+
+| Jalon | Scope | Statut |
+|---|---|---|
+| M0 | Scaffold (compose, FastAPI, Vite, MapLibre dark) | ✅ poussé |
+| M1 | Référentiel zones/frontières depuis `entsoe-py` | ✅ poussé |
+| M2 | Source Energy-Charts (no key) + snapshot live | ✅ poussé |
+| M3 | Carte live hero (choroplèthe prix + arcs animés) | ✅ poussé |
+| M4 | Historique 48 h + time scrubber (sans DuckDB) | ✅ poussé |
+| M5 | Métriques en mémoire + 4 panneaux | ✅ poussé |
+| **M6** | Analytics + **DuckDB** + **ENTSO-E** (gated) | ✅ poussé (`095af0e`) ⏳ live token |
+| **M7** | Alertes + Modélisation (option §4.7–4.8) | 🟧 **non commité** |
+
+→ [[Socle M0-M5]] · [[Jalon M6]] · [[Jalon M7]]
+
+## Historique git (`main`)
+
+```
+095af0e  M6 (analytics): DuckDB + SQL analytics + CSV + Analytics panel; entsoe câblé
+56ebae4  M5 (zone dashboard)
+dd2d056  M5 (explorer)
+d2764da  M5 (Sankey)
+e6dedc5  M5 (congestion)
+a8dc106  M4: 48 h history + scrubber
+ae9adb9  M3: live map hero
+bb4a3e7  M2: Energy-Charts snapshot
+5489f64  M1 referential (EIC depuis entsoe-py)
+b8bed5d  fix(frontend): map sizing
+0b4967a  M0 scaffold
+```
+
+## Prochaines étapes
+
+1. **Commit + push M7** (non fait, **non autorisé** — pousser = action sortante à confirmer). Style per-jalon comme M6.
+2. **À réception du token** [[ENTSO-E]] : vérifier le chemin live (NTC réels + flux zone→zone end-to-end).
+3. Optionnel : vrai modèle merit-order / `peakero-forecaster` ([[Jalon M7]]) ; sandbox scénario ; couche carbone Electricity Maps ; Vitest (non câblé).
+4. Mettre à jour le `README.md` du repo (figé à M5).
+
+Voir aussi : [[FluxEU]] · [[Conventions et pièges]]
