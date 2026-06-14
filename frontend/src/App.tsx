@@ -6,6 +6,7 @@ import CongestionPanel from "./panels/CongestionPanel";
 import SankeyPanel from "./panels/SankeyPanel";
 import ExplorerPanel from "./panels/ExplorerPanel";
 import ZonePanel from "./panels/ZonePanel";
+import AnalyticsPanel from "./panels/AnalyticsPanel";
 import { priceRampCss } from "./map/priceColor";
 import {
   fetchHealth,
@@ -47,7 +48,7 @@ export default function App() {
   const [warming, setWarming] = useState(false);
   const [mode, setMode] = useState<FlowMode>("commercial");
   const [panel, setPanel] = useState<
-    "none" | "congestion" | "sankey" | "explorer" | "zone"
+    "none" | "congestion" | "sankey" | "explorer" | "zone" | "analytics"
   >("none");
 
   useEffect(() => {
@@ -152,6 +153,10 @@ export default function App() {
     zone: {
       title: "Dashboard zone",
       subtitle: "prix 48 h · position nette · voisins",
+    },
+    analytics: {
+      title: "Analytics historique",
+      subtitle: "monotones · corrélations · export CSV",
     },
   } as const;
 
@@ -285,6 +290,13 @@ export default function App() {
           >
             ◫ Zone
           </button>
+          <button
+            onClick={() => setPanel("analytics")}
+            className="rounded-l-lg border border-r-0 border-white/10 bg-surface-1/85 px-3 py-3 font-mono text-xs text-slate-300 backdrop-blur transition-colors hover:text-accent"
+            title="Analytics historique"
+          >
+            ∿ Analytics
+          </button>
         </div>
       )}
 
@@ -302,6 +314,7 @@ export default function App() {
         {panel === "zone" && (
           <ZonePanel zones={zones} history={history} snapshot={snapshot} />
         )}
+        {panel === "analytics" && <AnalyticsPanel />}
       </PanelDock>
     </div>
   );

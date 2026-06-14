@@ -23,6 +23,9 @@ class Settings(BaseSettings):
         "http://127.0.0.1:5173",
     ]
 
+    # DuckDB analytics store (M6). Docker sets an absolute path on a writable
+    # volume; the dev default is relative and anchored to the repo root below
+    # (CWD-independent — uvicorn may run from backend/).
     duckdb_path: str = "data/fluxeu.duckdb"
 
     @property
@@ -30,6 +33,11 @@ class Settings(BaseSettings):
         if self.data_source != "auto":
             return self.data_source
         return "entsoe" if self.entsoe_api else "energy_charts"
+
+    @property
+    def duckdb_file(self) -> Path:
+        p = Path(self.duckdb_path)
+        return p if p.is_absolute() else REPO_ROOT / p
 
 
 settings = Settings()

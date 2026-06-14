@@ -6,7 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from .config import settings
 from .jobs.scheduler import shutdown_scheduler, start_scheduler
-from .routers import interconnectors, metrics, snapshot, zones
+from .routers import analytics, interconnectors, metrics, snapshot, zones
 from .store import cache
 
 
@@ -23,6 +23,7 @@ app.include_router(zones.router)
 app.include_router(interconnectors.router)
 app.include_router(snapshot.router)
 app.include_router(metrics.router)
+app.include_router(analytics.router)
 
 app.add_middleware(
     CORSMiddleware,

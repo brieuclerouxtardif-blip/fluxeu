@@ -164,3 +164,70 @@ class SankeySnapshot(BaseModel):
     nodes: list[SankeyNode]
     links: list[SankeyLink]
     total_mw: float  # total cross-border commercial exchange
+
+
+# --- analytics (M6) --------------------------------------------------------
+# Served from the durable DuckDB store (store/duckdb_store.py), which accumulates
+# every refresh sweep — so these span far past the 48 h scrubber window. Source-
+# agnostic: Energy-Charts data now, richer zone-level ENTSO-E data once a token
+# is present. All timestamps UTC.
+
+
+class SeriesPoint(BaseModel):
+    ts: datetime  # UTC
+    value: float
+
+
+class ZoneSeries(BaseModel):
+    zone: str  # zone key
+    points: list[SeriesPoint]  # ascending by ts
+
+
+class PriceSeriesResponse(BaseModel):
+    start: datetime  # UTC — window start
+    end: datetime  # UTC — window end (≈ now)
+    hours: int
+    zones: list[ZoneSeries]
+
+
+class FlowSeriesPoint(BaseModel):
+    ts: datetime  # UTC
+    commercial_mw: float | None = None  # signed: + = from_zone -> to_zone
+    physical_mw: float | None = None  # signed, same convention
+
+
+class FlowSeriesResponse(BaseModel):
+    from_zone: str
+    to_zone: str
+    start: datetime
+    end: datetime
+    hours: int
+    points: list[FlowSeriesPoint]  # ascending by ts
+
+
+class DurationPoint(BaseModel):
+    pct: float  # 0..100 — share of the window at or above eur_mwh
+    eur_mwh: float
+
+
+class DurationCurve(BaseModel):
+    zone: str
+    hours: int
+    n: int  # number of observations in the window
+    points: list[DurationPoint]  # descending by price (duration-curve order)
+
+
+class CorrelationMatrix(BaseModel):
+    zones: list[str]  # zones actually present, in request order
+    matrix: list[list[float | None]]  # row i / col j = Pearson corr(zones[i], zones[j])
+    hours: int
+    n_timestamps: int  # aligned timestamps the correlation ran on
+
+
+class Coverage(BaseModel):
+    price_rows: int
+    flow_rows: int
+    start: datetime | None = None  # UTC — earliest accumulated point
+    end: datetime | None = None  # UTC — latest
+    zones: list[str]  # zones with at least one price row
+    source: str  # active data source feeding the store

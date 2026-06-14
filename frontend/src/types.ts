@@ -142,6 +142,70 @@ export interface SankeySnapshot {
   total_mw: number;
 }
 
+// --- analytics (M6) ---
+// Served from the durable DuckDB store (accumulates every sweep), so these span
+// past the 48 h scrubber window. All timestamps UTC ISO-8601.
+
+export interface SeriesPoint {
+  ts: string;
+  value: number;
+}
+
+export interface ZoneSeries {
+  zone: string;
+  points: SeriesPoint[]; // ascending by ts
+}
+
+export interface PriceSeriesResponse {
+  start: string;
+  end: string;
+  hours: number;
+  zones: ZoneSeries[];
+}
+
+export interface FlowSeriesPoint {
+  ts: string;
+  commercial_mw: number | null; // signed: + = from_zone -> to_zone
+  physical_mw: number | null;
+}
+
+export interface FlowSeriesResponse {
+  from_zone: string;
+  to_zone: string;
+  start: string;
+  end: string;
+  hours: number;
+  points: FlowSeriesPoint[];
+}
+
+export interface DurationPoint {
+  pct: number; // 0..100, share of the window at or above eur_mwh
+  eur_mwh: number;
+}
+
+export interface DurationCurve {
+  zone: string;
+  hours: number;
+  n: number;
+  points: DurationPoint[]; // descending by price
+}
+
+export interface CorrelationMatrix {
+  zones: string[]; // present zones, request order
+  matrix: (number | null)[][]; // row i / col j = corr(zones[i], zones[j])
+  hours: number;
+  n_timestamps: number;
+}
+
+export interface Coverage {
+  price_rows: number;
+  flow_rows: number;
+  start: string | null;
+  end: string | null;
+  zones: string[];
+  source: string;
+}
+
 export interface ZoneFeatureProps {
   key: string;
   name: string;

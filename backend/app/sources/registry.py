@@ -1,7 +1,8 @@
 """Active data source selection.
 
-Energy-Charts is the zero-config default. ENTSO-E (token) is wired in M6;
-until then we fall back to Energy-Charts even if a token is present.
+Energy-Charts is the zero-config default. ENTSO-E (M6) takes over when a token is
+present (config.active_source == "entsoe"); if the token is missing or entsoe-py
+fails to initialise we fall back to Energy-Charts so the app always boots.
 """
 
 from __future__ import annotations
@@ -17,5 +18,14 @@ log = logging.getLogger("fluxeu.sources")
 
 def get_source() -> DataSource:
     if settings.active_source == "entsoe":
-        log.warning("ENTSO-E source not implemented yet (M6) — using Energy-Charts")
+        token = settings.entsoe_api
+        if not token:
+            log.warning("active_source=entsoe but no token set — using Energy-Charts")
+        else:
+            try:
+                from .entsoe import EntsoeSource
+
+                return EntsoeSource(token)
+            except Exception:  # noqa: BLE001 — never let source init break startup
+                log.exception("ENTSO-E source init failed — falling back to Energy-Charts")
     return EnergyChartsSource()

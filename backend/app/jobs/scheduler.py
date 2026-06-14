@@ -15,7 +15,7 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 from ..sources.base import live_from_history
 from ..sources.registry import get_source
-from ..store import cache
+from ..store import cache, duckdb_store
 
 log = logging.getLogger("fluxeu.jobs")
 
@@ -41,6 +41,13 @@ async def refresh_snapshot() -> None:
             return
         cache.set_history(hist)
         cache.persist_history(hist)
+        # accumulate the sweep into DuckDB (durable long history, M6). Off the
+        # event loop, and guarded — a DB hiccup must never kill the refresh.
+        try:
+            rows = await asyncio.to_thread(duckdb_store.ingest_history, hist)
+            log.info("duckdb ingested %d price rows", rows)
+        except Exception:  # noqa: BLE001
+            log.exception("duckdb ingestion failed (continuing)")
         live = live_from_history(hist)
         if live is not None:
             cache.set_snapshot(live)
@@ -69,6 +76,12 @@ def start_scheduler() -> None:
     if hist is not None:
         cache.set_history(hist)
         log.info("loaded persisted history: %d frames", len(hist.frames))
+        # seed DuckDB from the persisted window so analytics has data at once
+        # (the first full sweep is ~15-25 min away); idempotent upsert.
+        try:
+            duckdb_store.ingest_history(hist)
+        except Exception:  # noqa: BLE001
+            log.exception("duckdb seed from persisted history failed (continuing)")
     _scheduler = AsyncIOScheduler(timezone="UTC")
     _scheduler.add_job(refresh_snapshot, "interval", minutes=REFRESH_MINUTES, id="refresh")
     _scheduler.start()

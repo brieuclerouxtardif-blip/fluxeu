@@ -1,8 +1,12 @@
 import type {
   CongestionSnapshot,
   ConvergenceSeries,
+  CorrelationMatrix,
+  Coverage,
+  DurationCurve,
   Interconnector,
   LiveSnapshot,
+  PriceSeriesResponse,
   SankeySnapshot,
   SnapshotHistory,
   Zone,
@@ -35,3 +39,27 @@ export const fetchCongestion = () =>
 export const fetchConvergence = () =>
   get<ConvergenceSeries>("/api/metrics/convergence");
 export const fetchSankey = () => get<SankeySnapshot>("/api/metrics/sankey");
+
+// --- analytics (M6) — durable DuckDB store ---
+export const fetchCoverage = () => get<Coverage>("/api/analytics/coverage");
+export const fetchPriceSeries = (zones: string[], hours: number) =>
+  get<PriceSeriesResponse>(
+    `/api/prices?zones=${encodeURIComponent(zones.join(","))}&hours=${hours}`,
+  );
+export const fetchDuration = (zone: string, hours: number) =>
+  get<DurationCurve>(
+    `/api/analytics/duration?zone=${encodeURIComponent(zone)}&hours=${hours}`,
+  );
+export const fetchCorrelation = (zones: string[], hours: number) =>
+  get<CorrelationMatrix>(
+    `/api/analytics/correlation?zones=${encodeURIComponent(zones.join(","))}&hours=${hours}`,
+  );
+export const exportCsvUrl = (
+  table: "prices" | "flows",
+  hours: number,
+  zones?: string[],
+): string => {
+  const q = new URLSearchParams({ table, hours: String(hours) });
+  if (zones && zones.length) q.set("zones", zones.join(","));
+  return `/api/export.csv?${q.toString()}`;
+};
