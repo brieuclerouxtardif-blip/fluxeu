@@ -1,9 +1,11 @@
 import type {
+  AlertsSnapshot,
   CongestionSnapshot,
   ConvergenceSeries,
   CorrelationMatrix,
   Coverage,
   DurationCurve,
+  ForwardCurve,
   Interconnector,
   LiveSnapshot,
   PriceSeriesResponse,
@@ -63,3 +65,10 @@ export const exportCsvUrl = (
   if (zones && zones.length) q.set("zones", zones.join(","));
   return `/api/export.csv?${q.toString()}`;
 };
+
+// --- M7: alerts + forward model ---
+export const fetchAlerts = () => get<AlertsSnapshot>("/api/alerts");
+export const fetchForward = (zone: string, horizon = 24) =>
+  get<ForwardCurve>(
+    `/api/model/forward?zone=${encodeURIComponent(zone)}&horizon=${horizon}`,
+  );

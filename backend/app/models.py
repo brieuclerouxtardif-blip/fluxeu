@@ -231,3 +231,59 @@ class Coverage(BaseModel):
     end: datetime | None = None  # UTC — latest
     zones: list[str]  # zones with at least one price row
     source: str  # active data source feeding the store
+
+
+# --- alerts / signals (M7, PLAN §4.8) -------------------------------------
+# Derived in memory off the cached live snapshot + 48 h history (no extra API
+# calls, mirrors the metrics router). Negative prices, price spikes (absolute +
+# statistical vs the zone's own 48 h distribution), congested borders; near-full
+# capacity only fires when an NTC exists (ENTSO-E), inert on Energy-Charts.
+
+AlertType = Literal[
+    "negative_price", "price_spike", "high_spread", "near_full_capacity"
+]
+AlertSeverity = Literal["info", "warn", "crit"]
+
+
+class Alert(BaseModel):
+    type: AlertType
+    severity: AlertSeverity
+    scope: Literal["zone", "border"]
+    key: str  # zone key, or "A–B" for a border
+    value: float  # the triggering quantity (€/MWh, or utilisation 0..1)
+    detail: str  # short human-readable message
+    ts: datetime | None = None  # UTC — market time of the underlying data
+
+
+class AlertsSnapshot(BaseModel):
+    ts: datetime  # UTC — compute time
+    data_ts: datetime | None = None  # UTC — market time of the data
+    counts: dict[str, int]  # severity -> count ({"crit","warn","info"})
+    alerts: list[Alert]  # severity desc, then |value| desc
+
+
+# --- forward model (M7, PLAN §4.7) ----------------------------------------
+# Self-contained seasonal-naive baseline from the DuckDB history (hour-of-day
+# p10/p50/p90, Europe/Brussels). A placeholder for the real merit-order / peakero
+# forward model: the band overlays the realized spot to compare modelled vs cleared.
+
+
+class ForwardPoint(BaseModel):
+    ts: datetime  # UTC — forecast MTU
+    p10: float
+    p50: float  # median modelled price
+    p90: float
+
+
+class RealizedPoint(BaseModel):
+    ts: datetime  # UTC
+    eur_mwh: float
+
+
+class ForwardCurve(BaseModel):
+    zone: str
+    generated_ts: datetime  # UTC — when this curve was built
+    method: str  # e.g. "seasonal_naive_hod"
+    n_history: int  # observations the model was fit on
+    forward: list[ForwardPoint]  # ascending by ts
+    realized: list[RealizedPoint]  # recent spot, ascending by ts

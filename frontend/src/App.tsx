@@ -7,8 +7,11 @@ import SankeyPanel from "./panels/SankeyPanel";
 import ExplorerPanel from "./panels/ExplorerPanel";
 import ZonePanel from "./panels/ZonePanel";
 import AnalyticsPanel from "./panels/AnalyticsPanel";
+import AlertsPanel from "./panels/AlertsPanel";
+import ModelPanel from "./panels/ModelPanel";
 import { priceRampCss } from "./map/priceColor";
 import {
+  fetchAlerts,
   fetchHealth,
   fetchHistory,
   fetchInterconnectors,
@@ -18,6 +21,7 @@ import {
   type Health,
 } from "./api/client";
 import type {
+  AlertsSnapshot,
   Interconnector,
   LiveSnapshot,
   SnapshotHistory,
@@ -47,8 +51,10 @@ export default function App() {
   const [scrubIndex, setScrubIndex] = useState<number | null>(null); // null = live
   const [warming, setWarming] = useState(false);
   const [mode, setMode] = useState<FlowMode>("commercial");
+  const [alerts, setAlerts] = useState<AlertsSnapshot | null>(null);
+  const [alertsWarming, setAlertsWarming] = useState(false);
   const [panel, setPanel] = useState<
-    "none" | "congestion" | "sankey" | "explorer" | "zone" | "analytics"
+    "none" | "congestion" | "sankey" | "explorer" | "zone" | "analytics" | "alerts" | "model"
   >("none");
 
   useEffect(() => {
@@ -108,6 +114,30 @@ export default function App() {
     };
   }, []);
 
+  // Poll alerts (M7) for the header badge + feed. Same cadence as the snapshot.
+  const alertTimer = useRef<number | undefined>(undefined);
+  useEffect(() => {
+    let cancelled = false;
+    const poll = async () => {
+      try {
+        const a = await fetchAlerts();
+        if (cancelled) return;
+        setAlerts(a);
+        setAlertsWarming(false);
+        alertTimer.current = window.setTimeout(poll, POLL_OK_MS);
+      } catch {
+        if (cancelled) return;
+        setAlertsWarming(true);
+        alertTimer.current = window.setTimeout(poll, POLL_WARMING_MS);
+      }
+    };
+    poll();
+    return () => {
+      cancelled = true;
+      if (alertTimer.current) window.clearTimeout(alertTimer.current);
+    };
+  }, []);
+
   // What the map shows: the live snapshot, or a replayed history frame.
   // Memoised so the synthesized snapshot keeps a stable identity between
   // renders (MapView only rebuilds layers when the frame actually changes).
@@ -158,7 +188,24 @@ export default function App() {
       title: "Analytics historique",
       subtitle: "monotones · corrélations · export CSV",
     },
+    alerts: {
+      title: "Alertes & signaux",
+      subtitle: "prix négatifs · pics · congestion",
+    },
+    model: {
+      title: "Modélisation",
+      subtitle: "forward modélisé vs spot réalisé",
+    },
   } as const;
+
+  // alert badge: count of actionable (crit+warn) signals, coloured by the worst
+  const alertCount = alerts ? (alerts.counts.crit ?? 0) + (alerts.counts.warn ?? 0) : 0;
+  const alertColor =
+    alerts && alerts.counts.crit > 0
+      ? "border-red-400/40 text-red-300"
+      : alertCount > 0
+        ? "border-amber-400/40 text-amber-300"
+        : "border-white/10 text-slate-400";
 
   return (
     <div className="relative h-screen w-screen overflow-hidden">
@@ -205,6 +252,15 @@ export default function App() {
           <div className="rounded-lg border border-amber-400/30 bg-surface-1/80 px-3 py-2 font-mono text-xs text-amber-300 backdrop-blur">
             ◌ live snapshot warming up…
           </div>
+        )}
+        {alerts && (
+          <button
+            onClick={() => setPanel("alerts")}
+            className={`pointer-events-auto rounded-lg border bg-surface-1/80 px-3 py-2 font-mono text-xs backdrop-blur transition-colors hover:bg-white/5 ${alertColor}`}
+            title="Alertes & signaux"
+          >
+            {alertCount > 0 ? `⚠ ${alertCount} alertes` : "✓ 0 alerte"}
+          </button>
         )}
       </header>
 
@@ -297,6 +353,20 @@ export default function App() {
           >
             ∿ Analytics
           </button>
+          <button
+            onClick={() => setPanel("alerts")}
+            className="rounded-l-lg border border-r-0 border-white/10 bg-surface-1/85 px-3 py-3 font-mono text-xs text-slate-300 backdrop-blur transition-colors hover:text-accent"
+            title="Alertes & signaux"
+          >
+            ⚠ Alertes
+          </button>
+          <button
+            onClick={() => setPanel("model")}
+            className="rounded-l-lg border border-r-0 border-white/10 bg-surface-1/85 px-3 py-3 font-mono text-xs text-slate-300 backdrop-blur transition-colors hover:text-accent"
+            title="Modélisation"
+          >
+            ⟐ Modèle
+          </button>
         </div>
       )}
 
@@ -315,6 +385,8 @@ export default function App() {
           <ZonePanel zones={zones} history={history} snapshot={snapshot} />
         )}
         {panel === "analytics" && <AnalyticsPanel />}
+        {panel === "alerts" && <AlertsPanel data={alerts} warming={alertsWarming} />}
+        {panel === "model" && <ModelPanel zones={zones} />}
       </PanelDock>
     </div>
   );

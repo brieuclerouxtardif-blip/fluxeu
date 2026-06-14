@@ -206,6 +206,55 @@ export interface Coverage {
   source: string;
 }
 
+// --- alerts / signals (M7) ---
+
+export type AlertType =
+  | "negative_price"
+  | "price_spike"
+  | "high_spread"
+  | "near_full_capacity";
+export type AlertSeverity = "info" | "warn" | "crit";
+
+export interface Alert {
+  type: AlertType;
+  severity: AlertSeverity;
+  scope: "zone" | "border";
+  key: string;
+  value: number;
+  detail: string;
+  ts: string | null;
+}
+
+export interface AlertsSnapshot {
+  ts: string;
+  data_ts: string | null;
+  counts: Record<string, number>; // severity -> count
+  alerts: Alert[]; // severity desc
+}
+
+// --- forward model (M7) ---
+
+export interface ForwardPoint {
+  ts: string;
+  p10: number;
+  p50: number;
+  p90: number;
+}
+
+export interface RealizedPoint {
+  ts: string;
+  eur_mwh: number;
+}
+
+export interface ForwardCurve {
+  zone: string;
+  generated_ts: string;
+  method: string;
+  n_history: number;
+  forward: ForwardPoint[];
+  realized: RealizedPoint[];
+}
+
 export interface ZoneFeatureProps {
   key: string;
   name: string;
